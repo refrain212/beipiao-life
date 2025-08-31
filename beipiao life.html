@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>北漂人生 - 文字互动游戏</title>
+  <style>
+    body {
+      font-family: "Microsoft Yahei", sans-serif;
+      background: #f4f4f4;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      position: relative;
+    }
+    #status-box {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      width: 220px;
+      text-align: left;
+      line-height: 1.6;
+      display: none;
+    }
+    #status-box p {
+      margin: 0;
+      padding: 2px 0;
+      border-bottom: 1px dashed #eee;
+    }
+    #status-box p:last-child {
+      border-bottom: none;
+    }
+    #game-container {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      width: 400px;
+      text-align: center;
+    }
+    button {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 8px;
+      background: #0078d7;
+      color: white;
+      cursor: pointer;
+      margin: 5px;
+    }
+    button:hover {
+      background: #005fa3;
+    }
+    input {
+      padding: 6px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      margin-top: 8px;
+      width: 80%;
+    }
+  </style>
+</head>
+<body>
+  <div id="status-box"></div>
+  <div id="game-container">
+    <h2>北漂人生</h2>
+    <div id="start-screen">
+      <p>请输入你的姓名：</p>
+      <input type="text" id="name-input" placeholder="姓名">
+      <br>
+      <button onclick="startGame()">开始游戏</button>
+    </div>
+    <div id="game-screen" style="display:none;"></div>
+  </div>
+
+  <script>
+    // 游戏数据
+    // 公司数据库
+    const companies = [
+      { name: "字节跳动", minSkill: 800, income: 25000, desc: "互联网巨头，工作强度较大" },
+      { name: "腾讯", minSkill: 850, income: 28000, desc: "环境稳定，福利优厚" },
+      { name: "阿里巴巴", minSkill: 900, income: 30000, desc: "996福报" },
+      { name: "百度", minSkill: 750, income: 22000, desc: "老牌大厂" },
+      { name: "京东", minSkill: 700, income: 20000, desc: "电商大厂" },
+      { name: "美团", minSkill: 680, income: 18000, desc: "发展迅速" },
+      { name: "网易", minSkill: 750, income: 21000, desc: "氛围轻松" },
+      { name: "小米", minSkill: 650, income: 17000, desc: "年轻有活力" },
+      { name: "快手", minSkill: 780, income: 24000, desc: "发展空间大" },
+      { name: "滴滴", minSkill: 700, income: 19000, desc: "平台规模大" },
+      { name: "拼多多", minSkill: 800, income: 26000, desc: "高强度高回报" },
+      { name: "猿辅导", minSkill: 650, income: 16000, desc: "教育科技" },
+      { name: "BOSS直聘", minSkill: 600, income: 15000, desc: "环境友好" }
+    ];
+
+    let player = {
+      name: "",
+      age: 22,
+      money: 10000,
+      income: 8000,
+      rent: 5000,
+      energy: 100,
+      maxEnergy: 100,
+      mood: 100,
+      skill: 500,  // 工作能力
+      company: "小型互联网公司",
+      lastJobChange: new Date(2025, 8, 1), // 上次跳槽时间
+      lastSalaryRaise: new Date(2025, 8, 1) // 上次涨薪时间
+    };
+
+    let gameDate = new Date(2025, 8, 1);
+    let hasPerfectAttendance = true;
+    let absentDays = 0;
+
+    function getDateString() {
+      const weekDays = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
+      return `${gameDate.getFullYear()}.${gameDate.getMonth() + 1}.${gameDate.getDate()} ${weekDays[gameDate.getDay()]}`;
+    }
+
+    function updateStatusBox() {
+      const statusBox = document.getElementById("status-box");
+      statusBox.innerHTML = `
+        <p>日期：${getDateString()}</p>
+        <p>姓名：${player.name} | 年龄：${player.age}岁</p>
+        <p>公司：${player.company}</p>
+        <p>月薪：${player.income}元</p>
+        <p>体力：${player.energy}/${player.maxEnergy}</p>
+        <p>心情：${player.mood}</p>
+        <p>能力：${player.skill}</p>
+        <p>存款：${player.money}元</p>
+        <button onclick="careerMenu()" style="width:100%; margin-top:10px;">关于工作...</button>
+      `;
+    }
+
+    function startGame() {
+      const nameInput = document.getElementById("name-input").value;
+      if (!nameInput.trim()) {
+        alert("请输入名字");
+        return;
+      }
+      player.name = nameInput;
+      document.getElementById("start-screen").style.display = "none";
+      document.getElementById("game-screen").style.display = "block";
+      document.getElementById("status-box").style.display = "block";
+      updateStatusBox();
+      showIntro();
+    }
+
+    function resetGame() {
+      // 重置游戏数据
+      player = {
+        name: "",
+        age: 22,
+        money: 10000,
+        income: 8000,
+        rent: 5000,
+        energy: 100,
+        maxEnergy: 100,
+        mood: 100,
+        skill: 500,
+        company: "小型互联网公司",
+        lastJobChange: new Date(2025, 8, 1),
+        lastSalaryRaise: new Date(2025, 8, 1)
+      };
+      gameDate = new Date(2025, 8, 1);
+      hasPerfectAttendance = true;
+      absentDays = 0;
+
+      // 重置界面
+      document.getElementById("name-input").value = "";
+      document.getElementById("game-screen").style.display = "none";
+      document.getElementById("start-screen").style.display = "block";
+      document.getElementById("status-box").style.display = "none";
+    }
+
+    function showIntro() {
+      const gameScreen = document.getElementById("game-screen");
+      gameScreen.innerHTML = `
+        <p>你叫 <b>${player.name}</b>，今年 22 岁，本科毕业后来到北京，开始了北漂生活。</p>
+        <p>你在一家互联网小厂工作，月收入 <b>${player.income}</b> 元。</p>
+        <p>你租住在五环边上的一间单间，房租 <b>${player.rent}</b> 元。</p>
+        <p>你当前的存款是 <b>${player.money}</b> 元。</p>
+        <hr>
+        <p>清晨，你在出租屋中醒来，望着天花板，心里想着未来的路...</p>
+        <button onclick="nextStep()">继续</button>
+      `;
+    }
+
+    function nextDay() {
+      gameDate.setDate(gameDate.getDate() + 1);
+      if (gameDate.getDate() === 1) {
+        settleSalary();
+      }
+    }
+
+    function settleSalary() {
+      const workDaysInMonth = 26;
+      let bonus = hasPerfectAttendance ? 2000 : 0;
+      let dailySalary = Math.floor(player.income / workDaysInMonth);
+      let actualWorkDays = workDaysInMonth - absentDays;
+      actualWorkDays = Math.max(0, actualWorkDays);
+      let actualSalary = dailySalary * actualWorkDays;
+
+      player.money += actualSalary + bonus - player.rent;
+      updateStatusBox();
+
+      let message = `月底结算：本月工作${actualWorkDays}天，实发工资${actualSalary}元，全勤奖${bonus}元，扣除房租${player.rent}元。\n当前存款：${player.money}元`;
+      alert(message);
+      hasPerfectAttendance = true;
+      absentDays = 0;
+    }
+
+    function nextStep() {
+      const gameScreen = document.getElementById("game-screen");
+      const day = gameDate.getDay();
+
+      if (player.energy < 0) {
+        gameScreen.innerHTML = `
+          <h3>游戏结束</h3>
+          <p>时间：<b>${getDateString()}</b></p>
+          <p>主角存款：<b>${player.money}</b> 元</p>
+          <p style="color:#C1437A;font-weight:bold;">金钱犹可贵，身体价更高</p>
+          <button onclick="resetGame()" style="margin-top: 20px;">重新开始</button>
+        `;
+        return;
+      }
+
+      let optionsHtml = '';
+      if (day === 0) {
+        optionsHtml = '<button onclick="restMenu()">在家休息</button>';
+      } else {
+        optionsHtml = '<button onclick="chooseWork()">去公司上班</button>' +
+                      '<button onclick="restMenu()">在家休息</button>';
+      }
+
+      gameScreen.innerHTML = `
+        <p>今天是 <b>${getDateString()}</b>。</p>
+        <p>今天你想：</p>
+        ${optionsHtml}
+      `;
+    }
+
+    // 上班逻辑
+    function chooseWork() {
+      const day = gameDate.getDay();
+      let message = "";
+      let skillGain = 0;
+      let statusText = "";
+
+      if (day === 0) {
+        message = "今天是周日，公司休息。";
+      } else {
+        let moodChange = -5; // 记录心情变化
+        player.energy -= 5;
+        player.mood = Math.max(0, player.mood + moodChange); // 基础心情变化
+        
+        if (player.mood === 0) {
+          // 心情降到0时，摸鱼模式
+          message = "你完全提不起精神，整天都在划水摸鱼。";
+          skillGain = 0;
+        } else if (player.mood < 20) {
+          // 心情很低时，有可能被主管责骂
+          if (Math.random() < 0.5) {
+            message = "你心不在焉，上班时被主管骂了一顿，心情更加糟糕。";
+            moodChange -= 10;
+            player.mood = Math.max(0, player.mood - 10);
+            skillGain = 1;
+          } else {
+            message = "你勉强完成了工作，效率很低。";
+            skillGain = 2;
+          }
+        } else {
+          // 正常工作
+          message = "你努力工作了一天，积累了一些经验。";
+          skillGain = 5;
+          if (Math.random() < 0.1) {  // 10%概率获得额外成长
+            message += "今天遇到了一个技术难题，但被你解决了！心情不错！";
+            skillGain += 3;
+            moodChange += 5; // 解决难题时增加心情
+            player.mood = Math.min(100, player.mood + 5);
+          }
+        }
+
+        player.skill += skillGain;
+        statusText = `<p><b>体力 -5，心情 ${moodChange > 0 ? '+' + moodChange : moodChange}${skillGain > 0 ? '，能力 +' + skillGain : ''}</b></p>`;
+      }
+
+      nextDay();
+      updateStatusBox();
+      document.getElementById("game-screen").innerHTML = `
+        <p>${message}</p>
+        ${statusText}
+        <button onclick="nextStep()">继续</button>
+      `;
+    }
+
+    // 二级休息菜单
+    function restMenu() {
+      const gameScreen = document.getElementById("game-screen");
+      gameScreen.innerHTML = `
+        <p>你决定在家休息，可以选择：</p>
+        <button onclick="restSleep()">睡一觉</button>
+        <button onclick="restGame()">在家打游戏</button>
+        <button onclick="readForum()">看论坛</button>
+        <button onclick="goOutMenu()">出去走走</button>
+      `;
+    }
+
+    function readForum() {
+      const skillGain = 3;
+      const moodGain = 10;
+      player.skill += skillGain;
+      player.mood = Math.min(100, player.mood + moodGain);
+      handleAbsence();
+
+      let events = [
+        "你在论坛上看到了一些有趣的技术讨论，学到了新知识。",
+        "你发现了一个很好的技术教程，认真学习了一下午。",
+        "你在论坛上和其他程序员交流，获得了一些新的见解。"
+      ];
+      let message = events[Math.floor(Math.random() * events.length)];
+      endDay(message, {
+        skill: skillGain,
+        mood: moodGain
+      });
+    }
+
+    function restSleep() {
+      const energyGain = 30;
+      const moodGain = 10;
+      player.energy = Math.min(player.maxEnergy, player.energy + energyGain);
+      player.mood = Math.min(100, player.mood + moodGain);
+      handleAbsence();
+      endDay("你美美地睡了一觉，精神恢复了不少。", {
+        energy: energyGain,
+        mood: moodGain
+      });
+    }
+
+    function restGame() {
+      const energyGain = 10;
+      const moodGain = 15;
+      player.energy = Math.min(player.maxEnergy, player.energy + energyGain);
+      player.mood = Math.min(100, player.mood + moodGain);
+      handleAbsence();
+      endDay("你在家打了一天游戏，虽然有点宅，但心情好多了。", {
+        energy: energyGain,
+        mood: moodGain
+      });
+    }
+
+    function goOutMenu() {
+      const gameScreen = document.getElementById("game-screen");
+      gameScreen.innerHTML = `
+        <p>你决定出去走走，去哪里呢？</p>
+        <button onclick="goPark()">公园</button>
+        <button onclick="goNetCafe()">网吧</button>
+        <button onclick="goMall()">商场</button>
+        <button onclick="goGym()">健身房</button>
+      `;
+    }
+
+    function goGym() {
+      const energyChange = -20;
+      const moodGain = 15;
+      const moneyChange = -100;
+      const maxEnergyGain = 1;
+      
+      player.money += moneyChange;
+      player.energy = Math.max(0, player.energy + energyChange);
+      player.maxEnergy = Math.min(120, player.maxEnergy + maxEnergyGain);
+      player.mood = Math.min(100, player.mood + moodGain);
+      handleAbsence();
+
+      let events = [
+        "你进行了一次充实的健身训练，虽然很累但感觉很棒。",
+        "健身让你感觉充满活力，对生活更有信心了。",
+        "你遇到了几个志同道合的健身伙伴，互相加油打气。"
+      ];
+      let message = events[Math.floor(Math.random() * events.length)];
+      endDay(message, {
+        energy: energyChange,
+        mood: moodGain,
+        money: moneyChange,
+        maxEnergy: maxEnergyGain
+      });
+    }
+
+    function goPark() {
+      const energyGain = 5;
+      let moodChange = 25;
+      player.energy = Math.max(0, player.energy + energyGain);
+      
+      let events = [
+        "你在公园里散步，心情放松了许多。",
+        "你遇到一个老同学，聊了很久。",
+        "突然下雨了，你被淋湿，心情降低。"
+      ];
+      let message = events[Math.floor(Math.random() * events.length)];
+      
+      if (message.includes("淋湿")) {
+        moodChange = -10;
+      }
+      
+      player.mood = Math.min(100, player.mood + moodChange);
+      handleAbsence();
+      endDay(message, {
+        energy: energyGain,
+        mood: moodChange
+      });
+    }
+
+    function goNetCafe() {
+      const moneyChange = -100;
+      let energyChange = -10;
+      const moodGain = 40;
+      
+      let events = [
+        "你在网吧玩得很开心，结识了几个新朋友。",
+        "你通宵打游戏，第二天精神状态很差。"
+      ];
+      let message = events[Math.floor(Math.random() * events.length)];
+      
+      if (message.includes("通宵")) {
+        energyChange -= 20;  // 通宵额外减少20点体力
+      }
+      
+      player.money += moneyChange;
+      player.energy = Math.max(0, player.energy + energyChange);
+      player.mood = Math.min(100, player.mood + moodGain);
+      handleAbsence();
+      endDay(message, {
+        money: moneyChange,
+        energy: energyChange,
+        mood: moodGain
+      });
+    }
+
+    function goMall() {
+      const moneyChange = -200;
+      const energyChange = -15;
+      let moodChange = 30;
+      
+      let events = [
+        "你在商场买到了打折好货，很开心。",
+        "你冲动消费，回家后有点后悔。"
+      ];
+      let message = events[Math.floor(Math.random() * events.length)];
+      
+      if (message.includes("后悔")) {
+        moodChange = -10;
+      }
+      
+      player.money += moneyChange;
+      player.energy = Math.max(0, player.energy + energyChange);
+      player.mood = Math.min(100, player.mood + moodChange);
+      handleAbsence();
+      endDay(message, {
+        money: moneyChange,
+        energy: energyChange,
+        mood: moodChange
+      });
+    }
+
+    // 公共处理
+    function handleAbsence() {
+      const day = gameDate.getDay();
+      if (day !== 0) {
+        hasPerfectAttendance = false;
+        absentDays++;
+      }
+    }
+
+    function endDay(message, changes = {}) {
+      nextDay();
+      updateStatusBox();
+      let statusText = '';
+      if (changes.energy || changes.mood || changes.skill || changes.money || changes.maxEnergy) {
+        statusText = '<p><b>' + 
+          (changes.energy ? `体力 ${changes.energy > 0 ? '+' : ''}${changes.energy}` : '') +
+          (changes.mood ? `${changes.energy ? '，' : ''}心情 ${changes.mood > 0 ? '+' : ''}${changes.mood}` : '') +
+          (changes.skill ? `${changes.energy || changes.mood ? '，' : ''}能力 ${changes.skill > 0 ? '+' : ''}${changes.skill}` : '') +
+          (changes.money ? `${changes.energy || changes.mood || changes.skill ? '，' : ''}金钱 ${changes.money > 0 ? '+' : ''}${changes.money}` : '') +
+          (changes.maxEnergy ? `${changes.energy || changes.mood || changes.skill || changes.money ? '，' : ''}最大体力 ${changes.maxEnergy > 0 ? '+' : ''}${changes.maxEnergy}` : '') +
+          '</b></p>';
+      }
+      document.getElementById("game-screen").innerHTML = `
+        <p>${message}</p>
+        ${statusText}
+        <button onclick="nextStep()">继续</button>
+      `;
+    }
+
+    // 职业相关功能
+    function careerMenu() {
+      const gameScreen = document.getElementById("game-screen");
+      const daysSinceLastJobChange = Math.floor((gameDate - player.lastJobChange) / (1000 * 60 * 60 * 24));
+      const daysSinceLastRaise = Math.floor((gameDate - player.lastSalaryRaise) / (1000 * 60 * 60 * 24));
+      
+      let jobChangeDisabled = daysSinceLastJobChange < 30; // 30天内不能跳槽
+      let raiseDisabled = daysSinceLastRaise < 15; // 半个月内不能要求涨薪
+
+      gameScreen.innerHTML = `
+        <p>你目前在<b>${player.company}</b>工作</p>
+        <p>月薪：<b>${player.income}</b>元</p>
+        <hr>
+        <button onclick="tryJobChange()" ${jobChangeDisabled ? 'disabled style="background:#999"' : ''}>
+          找工作跳槽 ${jobChangeDisabled ? '(还需等待'+(30-daysSinceLastJobChange)+'天)' : ''}
+        </button>
+        <button onclick="tryRaiseSalary()" ${raiseDisabled ? 'disabled style="background:#999"' : ''}>
+          申请涨薪 ${raiseDisabled ? '(还需等待'+(15-daysSinceLastRaise)+'天)' : ''}
+        </button>
+        <hr>
+        <button onclick="nextStep()">返回</button>
+      `;
+    }
+
+    function tryJobChange() {
+      // 随机选择3个公司
+      let availableCompanies = companies.filter(c => c.income > player.income);
+      let choices = [];
+      while (choices.length < 3 && availableCompanies.length > 0) {
+        let idx = Math.floor(Math.random() * availableCompanies.length);
+        choices.push(availableCompanies[idx]);
+        availableCompanies.splice(idx, 1);
+      }
+
+      const gameScreen = document.getElementById("game-screen");
+      gameScreen.innerHTML = `
+        <p>你投递了简历，收到了以下公司的面试邀请：</p>
+        ${choices.map(c => `
+          <div style="margin: 10px 0; padding: 10px; border: 1px solid #eee; text-align: left;">
+            <p><b>${c.name}</b> - ${c.desc}</p>
+            <p>月薪：${c.income}元</p>
+            <p>面试成功率：${Math.floor(calculateJobSuccessRate(player.skill, c.minSkill))}%</p>
+            <button onclick="attemptJobChange('${c.name}', ${c.minSkill}, ${c.income})">尝试入职</button>
+          </div>
+        `).join('')}
+        <hr>
+        <button onclick="careerMenu()">返回</button>
+      `;
+    }
+
+    function calculateJobSuccessRate(playerSkill, requiredSkill) {
+      // 计算能力比率
+      const skillRatio = playerSkill / requiredSkill;
+      let successRate;
+      
+      if (skillRatio >= 1) {
+        // 能力达到或超过要求
+        // 基础60%成功率，每超过10%要求增加5%成功率，最高90%
+        successRate = 60 + (skillRatio - 1) * 50;
+        successRate = Math.min(90, successRate);
+      } else {
+        // 能力不足时
+        // 基础成功率随能力差距指数下降
+        successRate = 60 * Math.pow(skillRatio, 2);
+      }
+      
+      return Math.max(0, Math.min(100, successRate));
+    }
+
+    function attemptJobChange(companyName, requiredSkill, newIncome) {
+      const successRate = calculateJobSuccessRate(player.skill, requiredSkill);
+      const success = Math.random() * 100 < successRate;
+
+      if (success) {
+        player.company = companyName;
+        player.income = newIncome;
+        player.lastJobChange = new Date(gameDate);
+        player.mood = Math.min(100, player.mood + 20);
+        alert(`恭喜你成功入职${companyName}！\n新的月薪：${newIncome}元`);
+      } else {
+        player.mood = Math.max(0, player.mood - 10);
+        alert("很遗憾，面试失败了。");
+      }
+      
+      updateStatusBox();
+      careerMenu();
+    }
+
+    function tryRaiseSalary() {
+      const raiseAmount = Math.floor(player.income * 0.1); // 10%涨幅
+      const requiredSkill = player.skill * 1.1; // 需要当前能力的110%才能涨薪
+      const successRate = Math.min(80, (player.skill / requiredSkill) * 100); // 最高80%成功率
+
+      const gameScreen = document.getElementById("game-screen");
+      gameScreen.innerHTML = `
+        <p>你准备向主管申请涨薪</p>
+        <p>目前月薪：<b>${player.income}</b>元</p>
+        <p>期望涨幅：<b>${raiseAmount}</b>元</p>
+        <p>成功概率：<b>${Math.floor(successRate)}%</b></p>
+        <button onclick="attemptSalaryRaise(${raiseAmount}, ${successRate})">提出申请</button>
+        <hr>
+        <button onclick="careerMenu()">返回</button>
+      `;
+    }
+
+    function attemptSalaryRaise(raiseAmount, successRate) {
+      const success = Math.random() * 100 < successRate;
+
+      if (success) {
+        player.income += raiseAmount;
+        player.lastSalaryRaise = new Date(gameDate);
+        player.mood = Math.min(100, player.mood + 10);
+        alert(`太好了！涨薪申请通过了！\n新的月薪：${player.income}元`);
+      } else {
+        player.mood = Math.max(0, player.mood - 20);
+        alert("主管说现在公司效益不好，暂时没有涨薪的计划...");
+      }
+      
+      updateStatusBox();
+      careerMenu();
+    }
+  </script>
+</body>
+</html>
