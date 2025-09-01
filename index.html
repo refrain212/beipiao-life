@@ -98,24 +98,74 @@
       { name: "BOSS直聘", minSkill: 600, income: 15000, desc: "环境友好" }
     ];
 
+    // 住房数据库
+    const houses = [
+      // 五环外档次
+      { name: "五环外老旧单间", rent: 2500, sleepMoodBonus: -2, sleepEnergyBonus: -3, gameMoodBonus: -1, desc: "年久失修，隔音差" },
+      { name: "五环外普通单间", rent: 3000, sleepMoodBonus: 0, sleepEnergyBonus: 0, gameMoodBonus: 0, desc: "便宜但条件一般" },
+      { name: "五环外装修单间", rent: 3500, sleepMoodBonus: 1, sleepEnergyBonus: 2, gameMoodBonus: 1, desc: "简单装修，稍微舒适" },
+      
+      // 四环边档次
+      { name: "四环边老式一居", rent: 4000, sleepMoodBonus: 2, sleepEnergyBonus: 3, gameMoodBonus: 1, desc: "独立空间但设施陈旧" },
+      { name: "四环边标准一居", rent: 4500, sleepMoodBonus: 3, sleepEnergyBonus: 5, gameMoodBonus: 2, desc: "独立空间，环境较好" },
+      { name: "四环边采光一居", rent: 5000, sleepMoodBonus: 5, sleepEnergyBonus: 4, gameMoodBonus: 3, desc: "南北通透，采光极佳" },
+      
+      // 三环内档次
+      { name: "三环内普通一居", rent: 5500, sleepMoodBonus: 4, sleepEnergyBonus: 6, gameMoodBonus: 3, desc: "交通便利，生活方便" },
+      { name: "三环内精装一居", rent: 6500, sleepMoodBonus: 6, sleepEnergyBonus: 8, gameMoodBonus: 4, desc: "装修精美，设施齐全" },
+      { name: "三环内景观一居", rent: 7000, sleepMoodBonus: 8, sleepEnergyBonus: 7, gameMoodBonus: 5, desc: "高层景观，视野开阔" },
+      
+      // 二环豪华档次
+      { name: "二环标准公寓", rent: 8000, sleepMoodBonus: 7, sleepEnergyBonus: 10, gameMoodBonus: 5, desc: "高端小区，设施完善" },
+      { name: "二环豪华公寓", rent: 9500, sleepMoodBonus: 10, sleepEnergyBonus: 12, gameMoodBonus: 7, desc: "奢华装修，管家服务" },
+      { name: "二环顶级公寓", rent: 11000, sleepMoodBonus: 12, sleepEnergyBonus: 15, gameMoodBonus: 8, desc: "顶级配置，私人管家" },
+      
+      // 市中心顶级档次
+      { name: "市中心商务公寓", rent: 12000, sleepMoodBonus: 10, sleepEnergyBonus: 18, gameMoodBonus: 6, desc: "商务配置，效率优先" },
+      { name: "市中心精装豪宅", rent: 15000, sleepMoodBonus: 15, sleepEnergyBonus: 20, gameMoodBonus: 10, desc: "地段优越，装修精美" },
+      { name: "市中心顶级豪宅", rent: 20000, sleepMoodBonus: 20, sleepEnergyBonus: 25, gameMoodBonus: 15, desc: "奢华至极，身份象征" }
+    ];
+
     let player = {
       name: "",
       age: 22,
       money: 10000,
       income: 8000,
-      rent: 5000,
+      rent: 0, // 初始没有房租
       energy: 100,
       maxEnergy: 100,
       mood: 100,
       skill: 500,  // 工作能力
       company: "小型互联网公司",
+      house: "", // 初始没有房子
       lastJobChange: new Date(2025, 8, 1), // 上次跳槽时间
-      lastSalaryRaise: new Date(2025, 8, 1) // 上次涨薪时间
+      lastSalaryRaise: new Date(2025, 8, 1), // 上次涨薪时间
+      lastHouseChange: new Date(2025, 8, 1) // 上次换房时间
     };
 
     let gameDate = new Date(2025, 8, 1);
     let hasPerfectAttendance = true;
     let absentDays = 0;
+    let changes = {}; // 全局变化量记录
+
+    // 工具函数：应用属性变化
+    function applyChange(key, value) {
+      if (key === 'energy') {
+        player.energy = Math.max(0, Math.min(player.maxEnergy, player.energy + value));
+      } else if (key === 'mood') {
+        player.mood = Math.max(0, Math.min(100, player.mood + value));
+      } else if (key === 'maxEnergy') {
+        player.maxEnergy = Math.min(120, player.maxEnergy + value);
+      } else {
+        player[key] += value;
+      }
+      changes[key] = (changes[key] || 0) + value;
+    }
+
+    // 重置变化量记录
+    function resetChanges() {
+      changes = {};
+    }
 
     function getDateString() {
       const weekDays = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
@@ -129,11 +179,14 @@
         <p>姓名：${player.name} | 年龄：${player.age}岁</p>
         <p>公司：${player.company}</p>
         <p>月薪：${player.income}元</p>
+        <p>住房：${player.house || "暂无"}</p>
+        <p>房租：${player.rent}元</p>
         <p>体力：${player.energy}/${player.maxEnergy}</p>
         <p>心情：${player.mood}</p>
         <p>能力：${player.skill}</p>
         <p>存款：${player.money}元</p>
-        <button onclick="careerMenu()" style="width:100%; margin-top:10px;">关于工作...</button>
+        ${player.house ? '<button onclick="careerMenu()" style="width:100%; margin-top:5px;">关于工作...</button>' : ''}
+        ${player.house ? '<button onclick="housingMenu()" style="width:100%; margin-top:5px;">关于住房...</button>' : ''}
       `;
     }
 
@@ -158,14 +211,16 @@
         age: 22,
         money: 10000,
         income: 8000,
-        rent: 5000,
+        rent: 0,
         energy: 100,
         maxEnergy: 100,
         mood: 100,
         skill: 500,
         company: "小型互联网公司",
+        house: "",
         lastJobChange: new Date(2025, 8, 1),
-        lastSalaryRaise: new Date(2025, 8, 1)
+        lastSalaryRaise: new Date(2025, 8, 1),
+        lastHouseChange: new Date(2025, 8, 1)
       };
       gameDate = new Date(2025, 8, 1);
       hasPerfectAttendance = true;
@@ -183,12 +238,55 @@
       gameScreen.innerHTML = `
         <p>你叫 <b>${player.name}</b>，今年 22 岁，本科毕业后来到北京，开始了北漂生活。</p>
         <p>你在一家互联网小厂工作，月收入 <b>${player.income}</b> 元。</p>
-        <p>你租住在五环边上的一间单间，房租 <b>${player.rent}</b> 元。</p>
         <p>你当前的存款是 <b>${player.money}</b> 元。</p>
         <hr>
-        <p>清晨，你在出租屋中醒来，望着天花板，心里想着未来的路...</p>
-        <button onclick="nextStep()">继续</button>
+        <p>现在你需要找个地方住...</p>
+        <button onclick="chooseInitialHouse()">寻找房源</button>
       `;
+    }
+
+    function chooseInitialHouse() {
+      const gameScreen = document.getElementById("game-screen");
+      const outerRingHouses = houses.filter(h => h.name.includes("五环外"));
+      
+      gameScreen.innerHTML = `
+        <p>你在租房app上搜索着适合的房源...</p>
+        <p style="color:#666; font-style:italic;">"现在没钱，公司也挺偏的，就这个地段好了......"</p>
+        <hr>
+        <p>你找到了以下几个五环外的房源：</p>
+        ${outerRingHouses.map(h => `
+          <div style="margin: 10px 0; padding: 10px; border: 1px solid #eee; text-align: left;">
+            <p><b>${h.name}</b> - ${h.desc}</p>
+            <p>月租：${h.rent}元</p>
+            <p style="font-size:12px; color:#666;">
+              睡觉加成：体力+${30 + h.sleepEnergyBonus}，心情+${10 + h.sleepMoodBonus} | 
+              游戏加成：心情+${15 + h.gameMoodBonus}
+            </p>
+            <button onclick="selectInitialHouse('${h.name}', ${h.rent})">选择这里</button>
+          </div>
+        `).join('')}
+      `;
+    }
+
+    function selectInitialHouse(houseName, houseRent) {
+      player.house = houseName;
+      player.rent = houseRent;
+      player.money -= houseRent * 2; // 支付押金和首月房租
+      
+      const gameScreen = document.getElementById("game-screen");
+      gameScreen.innerHTML = `
+        <p>你选择了 <b>${houseName}</b>，月租 <b>${houseRent}</b> 元。</p>
+        <p>支付了押金和首月房租共 <b>${houseRent * 2}</b> 元。</p>
+        <p>当前存款：<b>${player.money}</b> 元。</p>
+        <hr>
+        <p>清晨，你在新租的房子里醒来，望着天花板，心里想着未来的路...</p>
+        <button onclick="finishIntro()">开始新生活</button>
+      `;
+      updateStatusBox();
+    }
+
+    function finishIntro() {
+      nextStep();
     }
 
     function nextDay() {
@@ -249,45 +347,40 @@
     function chooseWork() {
       const day = gameDate.getDay();
       let message = "";
-      let skillGain = 0;
       let statusText = "";
 
       if (day === 0) {
         message = "今天是周日，公司休息。";
       } else {
-        let moodChange = -5; // 记录心情变化
-        player.energy -= 5;
-        player.mood = Math.max(0, player.mood + moodChange); // 基础心情变化
+        resetChanges();
+        applyChange('energy', -5);
+        applyChange('mood', -5);
         
         if (player.mood === 0) {
           // 心情降到0时，摸鱼模式
           message = "你完全提不起精神，整天都在划水摸鱼。";
-          skillGain = 0;
         } else if (player.mood < 20) {
           // 心情很低时，有可能被主管责骂
           if (Math.random() < 0.5) {
             message = "你心不在焉，上班时被主管骂了一顿，心情更加糟糕。";
-            moodChange -= 10;
-            player.mood = Math.max(0, player.mood - 10);
-            skillGain = 1;
+            applyChange('mood', -10);
+            applyChange('skill', 1);
           } else {
             message = "你勉强完成了工作，效率很低。";
-            skillGain = 2;
+            applyChange('skill', 2);
           }
         } else {
           // 正常工作
           message = "你努力工作了一天，积累了一些经验。";
-          skillGain = 5;
+          applyChange('skill', 5);
           if (Math.random() < 0.1) {  // 10%概率获得额外成长
             message += "今天遇到了一个技术难题，但被你解决了！心情不错！";
-            skillGain += 3;
-            moodChange += 5; // 解决难题时增加心情
-            player.mood = Math.min(100, player.mood + 5);
+            applyChange('skill', 3);
+            applyChange('mood', 5); // 解决难题时增加心情
           }
         }
 
-        player.skill += skillGain;
-        statusText = `<p><b>体力 -5，心情 ${moodChange > 0 ? '+' + moodChange : moodChange}${skillGain > 0 ? '，能力 +' + skillGain : ''}</b></p>`;
+        statusText = `<p><b>体力 -5，心情 ${changes.mood > 0 ? '+' + changes.mood : changes.mood}${changes.skill > 0 ? '，能力 +' + changes.skill : ''}</b></p>`;
       }
 
       nextDay();
@@ -312,10 +405,9 @@
     }
 
     function readForum() {
-      const skillGain = 3;
-      const moodGain = 10;
-      player.skill += skillGain;
-      player.mood = Math.min(100, player.mood + moodGain);
+      resetChanges();
+      applyChange('skill', 3);
+      applyChange('mood', 10);
       handleAbsence();
 
       let events = [
@@ -324,34 +416,50 @@
         "你在论坛上和其他程序员交流，获得了一些新的见解。"
       ];
       let message = events[Math.floor(Math.random() * events.length)];
-      endDay(message, {
-        skill: skillGain,
-        mood: moodGain
-      });
+      endDay(message, changes);
     }
 
     function restSleep() {
-      const energyGain = 30;
-      const moodGain = 10;
-      player.energy = Math.min(player.maxEnergy, player.energy + energyGain);
-      player.mood = Math.min(100, player.mood + moodGain);
+      resetChanges();
+      const currentHouse = houses.find(h => h.name === player.house);
+      const moodBonus = currentHouse ? currentHouse.sleepMoodBonus : 0;
+      const energyBonus = currentHouse ? currentHouse.sleepEnergyBonus : 0;
+      
+      applyChange('energy', 30 + energyBonus);
+      applyChange('mood', 10 + moodBonus);
       handleAbsence();
-      endDay("你美美地睡了一觉，精神恢复了不少。", {
-        energy: energyGain,
-        mood: moodGain
-      });
+      
+      let message = "你美美地睡了一觉，精神恢复了不少。";
+      if (currentHouse) {
+        if (moodBonus > 0 || energyBonus > 0) {
+          message += `舒适的居住环境让你睡得更香甜！`;
+        } else if (moodBonus < 0 || energyBonus < 0) {
+          message += `糟糕的环境影响了你的睡眠质量...`;
+        }
+      }
+      
+      endDay(message, changes);
     }
 
     function restGame() {
-      const energyGain = 10;
-      const moodGain = 15;
-      player.energy = Math.min(player.maxEnergy, player.energy + energyGain);
-      player.mood = Math.min(100, player.mood + moodGain);
+      resetChanges();
+      const currentHouse = houses.find(h => h.name === player.house);
+      const moodBonus = currentHouse ? currentHouse.gameMoodBonus : 0;
+      
+      applyChange('energy', 10);
+      applyChange('mood', 15 + moodBonus);
       handleAbsence();
-      endDay("你在家打了一天游戏，虽然有点宅，但心情好多了。", {
-        energy: energyGain,
-        mood: moodGain
-      });
+      
+      let message = "你在家打了一天游戏，虽然有点宅，但心情好多了。";
+      if (currentHouse) {
+        if (moodBonus > 0) {
+          message += `舒适的环境让游戏体验更棒！`;
+        } else if (moodBonus < 0) {
+          message += `糟糕的环境让你有些烦躁...`;
+        }
+      }
+      
+      endDay(message, changes);
     }
 
     function goOutMenu() {
@@ -366,15 +474,11 @@
     }
 
     function goGym() {
-      const energyChange = -20;
-      const moodGain = 15;
-      const moneyChange = -100;
-      const maxEnergyGain = 1;
-      
-      player.money += moneyChange;
-      player.energy = Math.max(0, player.energy + energyChange);
-      player.maxEnergy = Math.min(120, player.maxEnergy + maxEnergyGain);
-      player.mood = Math.min(100, player.mood + moodGain);
+      resetChanges();
+      applyChange('money', -100);
+      applyChange('energy', -20);
+      applyChange('maxEnergy', 1);
+      applyChange('mood', 15);
       handleAbsence();
 
       let events = [
@@ -383,18 +487,12 @@
         "你遇到了几个志同道合的健身伙伴，互相加油打气。"
       ];
       let message = events[Math.floor(Math.random() * events.length)];
-      endDay(message, {
-        energy: energyChange,
-        mood: moodGain,
-        money: moneyChange,
-        maxEnergy: maxEnergyGain
-      });
+      endDay(message, changes);
     }
 
     function goPark() {
-      const energyGain = 5;
-      let moodChange = 25;
-      player.energy = Math.max(0, player.energy + energyGain);
+      resetChanges();
+      applyChange('energy', 5);
       
       let events = [
         "你在公园里散步，心情放松了许多。",
@@ -404,21 +502,19 @@
       let message = events[Math.floor(Math.random() * events.length)];
       
       if (message.includes("淋湿")) {
-        moodChange = -10;
+        applyChange('mood', -10);
+      } else {
+        applyChange('mood', 25);
       }
       
-      player.mood = Math.min(100, player.mood + moodChange);
       handleAbsence();
-      endDay(message, {
-        energy: energyGain,
-        mood: moodChange
-      });
+      endDay(message, changes);
     }
 
     function goNetCafe() {
-      const moneyChange = -100;
-      let energyChange = -10;
-      const moodGain = 40;
+      resetChanges();
+      applyChange('money', -100);
+      applyChange('mood', 40);
       
       let events = [
         "你在网吧玩得很开心，结识了几个新朋友。",
@@ -427,24 +523,19 @@
       let message = events[Math.floor(Math.random() * events.length)];
       
       if (message.includes("通宵")) {
-        energyChange -= 20;  // 通宵额外减少20点体力
+        applyChange('energy', -30);  // 通宵减少30点体力
+      } else {
+        applyChange('energy', -10);  // 正常减少10点体力
       }
       
-      player.money += moneyChange;
-      player.energy = Math.max(0, player.energy + energyChange);
-      player.mood = Math.min(100, player.mood + moodGain);
       handleAbsence();
-      endDay(message, {
-        money: moneyChange,
-        energy: energyChange,
-        mood: moodGain
-      });
+      endDay(message, changes);
     }
 
     function goMall() {
-      const moneyChange = -200;
-      const energyChange = -15;
-      let moodChange = 30;
+      resetChanges();
+      applyChange('money', -200);
+      applyChange('energy', -15);
       
       let events = [
         "你在商场买到了打折好货，很开心。",
@@ -453,18 +544,13 @@
       let message = events[Math.floor(Math.random() * events.length)];
       
       if (message.includes("后悔")) {
-        moodChange = -10;
+        applyChange('mood', -10);
+      } else {
+        applyChange('mood', 30);
       }
       
-      player.money += moneyChange;
-      player.energy = Math.max(0, player.energy + energyChange);
-      player.mood = Math.min(100, player.mood + moodChange);
       handleAbsence();
-      endDay(message, {
-        money: moneyChange,
-        energy: energyChange,
-        mood: moodChange
-      });
+      endDay(message, changes);
     }
 
     // 公共处理
@@ -617,8 +703,84 @@
       updateStatusBox();
       careerMenu();
     }
+
+    // 住房相关功能
+    function housingMenu() {
+      const gameScreen = document.getElementById("game-screen");
+      const daysSinceLastHouseChange = Math.floor((gameDate - player.lastHouseChange) / (1000 * 60 * 60 * 24));
+      
+      let houseChangeDisabled = daysSinceLastHouseChange < 30; // 30天内不能换房
+      const currentHouse = houses.find(h => h.name === player.house);
+
+      gameScreen.innerHTML = `
+        <p>你目前住在<b>${player.house}</b></p>
+        <p>月租：<b>${player.rent}</b>元</p>
+        <p>睡觉加成：体力+${30 + currentHouse.sleepEnergyBonus}，心情+${10 + currentHouse.sleepMoodBonus}</p>
+        <p>游戏加成：心情+${15 + currentHouse.gameMoodBonus}</p>
+        <hr>
+        <button onclick="tryHouseChange()" ${houseChangeDisabled ? 'disabled style="background:#999"' : ''}>
+          寻找新房源 ${houseChangeDisabled ? '(还需等待'+(30-daysSinceLastHouseChange)+'天)' : ''}
+        </button>
+        <hr>
+        <button onclick="nextStep()">返回</button>
+      `;
+    }
+
+    function tryHouseChange() {
+      // 随机选择3个房源（排除当前房子）
+      let availableHouses = houses.filter(h => h.name !== player.house);
+      let choices = [];
+      while (choices.length < 3 && availableHouses.length > 0) {
+        let idx = Math.floor(Math.random() * availableHouses.length);
+        choices.push(availableHouses[idx]);
+        availableHouses.splice(idx, 1);
+      }
+
+      const gameScreen = document.getElementById("game-screen");
+      gameScreen.innerHTML = `
+        <p>你打开租房app，系统为你推荐了以下房源：</p>
+        ${choices.map(h => `
+          <div style="margin: 10px 0; padding: 10px; border: 1px solid #eee; text-align: left;">
+            <p><b>${h.name}</b> - ${h.desc}</p>
+            <p>月租：${h.rent}元</p>
+            <p style="font-size:12px; color:#666;">
+              睡觉加成：体力+${30 + h.sleepEnergyBonus}，心情+${10 + h.sleepMoodBonus} | 
+              游戏加成：心情+${15 + h.gameMoodBonus}
+            </p>
+            <button onclick="attemptHouseChange('${h.name}', ${h.rent})" style="margin-top:5px;">搬到这里</button>
+          </div>
+        `).join('')}
+        <hr>
+        <button onclick="goBackFromHouseSearch()">返回</button>
+      `;
+    }
+
+    function goBackFromHouseSearch() {
+      const gameScreen = document.getElementById("game-screen");
+      gameScreen.innerHTML = `
+        <p style="color:#666; font-style:italic;">"大数据都推的什么房子……没一个合适的"</p>
+        <p>你关闭了租房app，决定暂时不换房子。</p>
+        <button onclick="housingMenu()">返回</button>
+      `;
+    }
+
+    function attemptHouseChange(houseName, newRent) {
+      if (player.money < newRent * 2) {
+        alert(`资金不足！搬家需要支付押金和首月房租，至少需要${newRent * 2}元。`);
+        return;
+      }
+
+      player.house = houseName;
+      player.rent = newRent;
+      player.money -= newRent * 2; // 支付押金和首月房租
+      player.lastHouseChange = new Date(gameDate);
+      player.mood = Math.min(100, player.mood + 15); // 搬新家心情好
+      
+      alert(`恭喜你搬到了${houseName}！\n支付了押金和首月房租共${newRent * 2}元\n新的月租：${newRent}元`);
+      
+      updateStatusBox();
+      housingMenu();
+    }
   </script>
 </body>
-
 </html>
-
