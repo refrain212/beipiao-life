@@ -765,18 +765,25 @@
     }
 
     function attemptHouseChange(houseName, newRent) {
-      if (player.money < newRent * 2) {
-        alert(`资金不足！搬家需要支付押金和首月房租，至少需要${newRent * 2}元。`);
+      // 计算实际需要的资金（新房押金+首月房租-旧房押金退回）
+      const oldDeposit = player.rent; // 之前的押金等于之前的月租
+      const actualCost = newRent * 2 - oldDeposit; // 实际花费
+      
+      if (player.money < actualCost) {
+        alert(`资金不足！换房实际需要${actualCost}元（新房押金+首月房租${newRent * 2}元，扣除退回押金${oldDeposit}元）。`);
         return;
       }
 
+      // 退回之前的押金
+      player.money += oldDeposit; // 退回押金
+      
       player.house = houseName;
       player.rent = newRent;
-      player.money -= newRent * 2; // 支付押金和首月房租
+      player.money -= newRent * 2; // 支付新房押金和首月房租
       player.lastHouseChange = new Date(gameDate);
       player.mood = Math.min(100, player.mood + 15); // 搬新家心情好
       
-      alert(`恭喜你搬到了${houseName}！\n支付了押金和首月房租共${newRent * 2}元\n新的月租：${newRent}元`);
+      alert(`恭喜你搬到了${houseName}！\n退回旧房押金${oldDeposit}元\n支付新房押金和首月房租共${newRent * 2}元\n新的月租：${newRent}元`);
       
       updateStatusBox();
       housingMenu();
