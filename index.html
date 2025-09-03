@@ -93,6 +93,148 @@
       width: 400px;
       text-align: center;
     }
+    /* 弹窗样式 */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: none;
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+    .modal-content {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      width: 350px;
+      text-align: center;
+      animation: modalShow 0.3s ease-out;
+    }
+    @keyframes modalShow {
+      from {
+        opacity: 0;
+        transform: scale(0.8);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+    .modal-content h3 {
+      margin: 0 0 15px 0;
+      color: #0078d7;
+    }
+    .modal-content .item-info {
+      margin: 15px 0;
+      padding: 10px;
+      background: #f9f9f9;
+      border-radius: 8px;
+      text-align: left;
+    }
+    .modal-buttons {
+      margin-top: 20px;
+    }
+    .modal-buttons button {
+      margin: 0 5px;
+    }
+    /* 游戏内弹窗样式 */
+    .game-popup {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.6);
+      display: none;
+      z-index: 2000;
+      justify-content: center;
+      align-items: center;
+    }
+    .game-popup-content {
+      background: white;
+      padding: 25px;
+      border-radius: 15px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+      width: 380px;
+      text-align: center;
+      animation: gamePopupShow 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      border: 3px solid #0078d7;
+    }
+    @keyframes gamePopupShow {
+      from {
+        opacity: 0;
+        transform: scale(0.5) translateY(-50px);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+    .game-popup h3 {
+      margin: 0 0 15px 0;
+      color: #0078d7;
+      font-size: 18px;
+      border-bottom: 2px solid #e9ecef;
+      padding-bottom: 10px;
+    }
+    .game-popup .popup-message {
+      margin: 15px 0;
+      padding: 15px;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border-radius: 10px;
+      text-align: left;
+      line-height: 1.6;
+      border-left: 4px solid #0078d7;
+    }
+    .game-popup .popup-effects {
+      margin: 10px 0;
+      padding: 10px;
+      background: #e8f5e8;
+      border-radius: 8px;
+      color: #2d5a3d;
+      font-size: 14px;
+      border: 1px solid #b8e6b8;
+    }
+    .game-popup-buttons {
+      margin-top: 20px;
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+    }
+    .game-popup-buttons button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+      min-width: 80px;
+    }
+    .popup-btn-primary {
+      background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+      color: white;
+      box-shadow: 0 3px 8px rgba(40, 167, 69, 0.3);
+    }
+    .popup-btn-primary:hover {
+      background: linear-gradient(135deg, #218838 0%, #1c7d73 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 5px 12px rgba(40, 167, 69, 0.4);
+    }
+    .popup-btn-secondary {
+      background: linear-gradient(135deg, #6c757d 0%, #5a6268 100%);
+      color: white;
+      box-shadow: 0 3px 8px rgba(108, 117, 125, 0.3);
+    }
+    .popup-btn-secondary:hover {
+      background: linear-gradient(135deg, #5a6268 0%, #495057 100%);
+      transform: translateY(-2px);
+      box-shadow: 0 5px 12px rgba(108, 117, 125, 0.4);
+    }
     button {
       padding: 8px 16px;
       border: none;
@@ -116,10 +258,48 @@
 </head>
 <body>
   <div id="status-box"></div>
-  <div id="items-box">
-    <h4 style="margin: 0 0 10px 0; color: #0078d7;">仓库</h4>
-    <div id="items-grid"></div>
+  <!-- 杂物间按钮 -->
+  <div id="items-button" style="position: fixed; bottom: 20px; left: 20px; display: none;">
+    <button onclick="openItemsDialog()" style="padding: 10px 15px; background: #0078d7; color: white; border: none; border-radius: 8px; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,0.2);">
+      📦 杂物间
+    </button>
   </div>
+  
+  <!-- 道具使用确认弹窗 -->
+  <div id="item-confirm-modal" class="modal-overlay">
+    <div class="modal-content">
+      <h3>使用道具</h3>
+      <div id="modal-item-info" class="item-info"></div>
+      <div class="modal-buttons">
+        <button onclick="confirmUseItem()" style="background: #28a745;">确认使用</button>
+        <button onclick="closeItemModal()" style="background: #6c757d;">取消</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 杂物间界面弹窗 -->
+  <div id="items-dialog-modal" class="modal-overlay">
+    <div class="modal-content" style="width: 450px;">
+      <h3>📦 杂物间</h3>
+      <div id="items-dialog-grid" style="max-height: 300px; overflow-y: auto; margin: 15px 0;"></div>
+      <div class="modal-buttons">
+        <button onclick="closeItemsDialog()" style="background: #6c757d;">关闭</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- 游戏内自定义弹窗 -->
+  <div id="game-popup" class="game-popup">
+    <div class="game-popup-content">
+      <h3 id="popup-title">消息</h3>
+      <div id="popup-message" class="popup-message"></div>
+      <div id="popup-effects" class="popup-effects" style="display: none;"></div>
+      <div class="game-popup-buttons">
+        <button id="popup-btn-ok" class="popup-btn-primary" onclick="closeGamePopup()">确定</button>
+      </div>
+    </div>
+  </div>
+  
   <div id="game-container">
     <h2>北漂人生</h2>
     <div id="start-screen">
@@ -287,12 +467,35 @@
         ${player.house ? '<button onclick="careerMenu()" style="width:100%; margin-top:5px;">关于工作...</button>' : ''}
         ${player.house ? '<button onclick="housingMenu()" style="width:100%; margin-top:5px;">关于住房...</button>' : ''}
       `;
-      updateItemsBox();
+      updateItemsButton();
     }
 
-    function updateItemsBox() {
-      const itemsGrid = document.getElementById("items-grid");
-      if (!itemsGrid) return;
+    // 更新杂物间按钮显示状态
+    function updateItemsButton() {
+      const itemsButton = document.getElementById("items-button");
+      if (!itemsButton) return;
+      
+      // 检查是否有道具
+      let hasItems = false;
+      for (let itemId in player.inventory) {
+        if (player.inventory[itemId] > 0) {
+          hasItems = true;
+          break;
+        }
+      }
+      
+      // 只有在游戏开始且有道具时才显示按钮
+      if (player.name) {
+        itemsButton.style.display = "block";
+      } else {
+        itemsButton.style.display = "none";
+      }
+    }
+
+    // 打开杂物间对话框
+    function openItemsDialog() {
+      const modal = document.getElementById("items-dialog-modal");
+      const itemsGrid = document.getElementById("items-dialog-grid");
       
       // 获取玩家拥有的道具
       let ownedItems = [];
@@ -306,23 +509,76 @@
       }
       
       if (ownedItems.length === 0) {
-        itemsGrid.innerHTML = '<p style="color:#999; font-size:12px; margin:0;">暂无道具</p>';
+        itemsGrid.innerHTML = '<p style="color:#999; text-align:center; margin:20px 0;">杂物间空空如也</p>';
+      } else {
+        itemsGrid.innerHTML = ownedItems.map(item => `
+          <div style="margin: 10px 0; padding: 15px; border: 1px solid #eee; border-radius: 8px; text-align: left; cursor: pointer; transition: all 0.2s;" 
+               onmouseover="this.style.background='#f0f8ff'; this.style.borderColor='#0078d7';" 
+               onmouseout="this.style.background='white'; this.style.borderColor='#eee';"
+               onclick="showItemConfirm(${item.id})">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div>
+                <p style="margin: 0; font-weight: bold; color: #0078d7;">${item.name}</p>
+                <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">${item.desc}</p>
+                <p style="margin: 5px 0 0 0; font-size: 11px; color: #999;">
+                  效果：${getItemEffectText(item)}
+                </p>
+              </div>
+              <div style="background: #0078d7; color: white; border-radius: 12px; padding: 4px 8px; font-size: 12px; min-width: 20px; text-align: center;">
+                ${item.quantity}
+              </div>
+            </div>
+          </div>
+        `).join('');
+      }
+      
+      modal.style.display = "flex";
+    }
+
+    // 关闭杂物间对话框
+    function closeItemsDialog() {
+      const modal = document.getElementById("items-dialog-modal");
+      modal.style.display = "none";
+    }
+
+    let currentItemToUse = null;
+
+    // 显示道具使用确认弹窗
+    function showItemConfirm(itemId) {
+      const item = items.find(i => i.id === itemId);
+      if (!item || !player.inventory[itemId] || player.inventory[itemId] <= 0) {
         return;
       }
       
-      itemsGrid.innerHTML = ownedItems.map(item => `
-        <div class="item-slot" onclick="useItemDirectly(${item.id})" title="${item.name} - ${item.desc}">
-          <div class="item-name">${item.name}</div>
-          <div class="item-count">${item.quantity}</div>
+      currentItemToUse = itemId;
+      const modal = document.getElementById("item-confirm-modal");
+      const itemInfo = document.getElementById("modal-item-info");
+      
+      itemInfo.innerHTML = `
+        <div style="text-align: center; margin-bottom: 10px;">
+          <h4 style="margin: 0; color: #0078d7;">${item.name}</h4>
+          <p style="margin: 5px 0; color: #666; font-size: 14px;">${item.desc}</p>
         </div>
-      `).join('');
+        <div style="background: #f8f9fa; padding: 10px; border-radius: 6px;">
+          <p style="margin: 0; font-size: 13px;"><strong>使用效果：</strong>${getItemEffectText(item)}</p>
+          <p style="margin: 5px 0 0 0; font-size: 12px; color: #666;">拥有数量：${player.inventory[itemId]}</p>
+        </div>
+      `;
+      
+      // 先关闭杂物间对话框
+      closeItemsDialog();
+      // 显示确认弹窗
+      modal.style.display = "flex";
     }
 
-    function useItemDirectly(itemId) {
-      const item = items.find(i => i.id === itemId);
+    // 确认使用道具
+    function confirmUseItem() {
+      if (currentItemToUse === null) return;
+      
+      const item = items.find(i => i.id === currentItemToUse);
       if (!item) return;
       
-      if (useItem(itemId)) {
+      if (useItem(currentItemToUse)) {
         let message = `使用了${item.name}`;
         
         // 特殊的使用效果描述
@@ -348,28 +604,94 @@
         if (item.skillGain) effects.push(`能力+${item.skillGain}`);
         if (item.special === "gym_bonus") effects.push(`获得健身加成`);
         
-        if (effects.length > 0) {
-          message += ` (${effects.join('，')})`;
-        }
+        let effectsText = effects.length > 0 ? effects.join('，') : null;
         
-        alert(message);
-        updateStatusBox();
+        showGamePopup("道具使用成功", message, effectsText, function() {
+          updateStatusBox();
+        });
       } else {
-        alert("使用失败！");
+        showGamePopup("使用失败", "道具使用失败，请稍后再试！");
       }
+      
+      closeItemModal();
+      currentItemToUse = null;
     }
+
+    // 关闭道具确认弹窗
+    function closeItemModal() {
+      const modal = document.getElementById("item-confirm-modal");
+      modal.style.display = "none";
+      currentItemToUse = null;
+    }
+
+    // 游戏内弹窗系统
+    function showGamePopup(title, message, effects = null, onConfirm = null) {
+      const popup = document.getElementById("game-popup");
+      const titleEl = document.getElementById("popup-title");
+      const messageEl = document.getElementById("popup-message");
+      const effectsEl = document.getElementById("popup-effects");
+      const okBtn = document.getElementById("popup-btn-ok");
+      
+      titleEl.textContent = title;
+      messageEl.innerHTML = message;
+      
+      if (effects) {
+        effectsEl.innerHTML = `<strong>效果变化：</strong>${effects}`;
+        effectsEl.style.display = "block";
+      } else {
+        effectsEl.style.display = "none";
+      }
+      
+      // 设置确认按钮的回调
+      okBtn.onclick = function() {
+        closeGamePopup();
+        if (onConfirm) onConfirm();
+      };
+      
+      popup.style.display = "flex";
+    }
+
+    function closeGamePopup() {
+      const popup = document.getElementById("game-popup");
+      popup.style.display = "none";
+    }
+
+    // 键盘事件处理
+    document.addEventListener('keydown', function(event) {
+      if (event.key === 'Escape') {
+        closeItemsDialog();
+        closeItemModal();
+        closeGamePopup();
+      }
+    });
+
+    // 点击弹窗外部关闭弹窗
+    document.addEventListener('click', function(event) {
+      const itemsModal = document.getElementById("items-dialog-modal");
+      const itemConfirmModal = document.getElementById("item-confirm-modal");
+      const gamePopup = document.getElementById("game-popup");
+      
+      if (event.target === itemsModal) {
+        closeItemsDialog();
+      }
+      if (event.target === itemConfirmModal) {
+        closeItemModal();
+      }
+      if (event.target === gamePopup) {
+        closeGamePopup();
+      }
+    });
 
     function startGame() {
       const nameInput = document.getElementById("name-input").value;
       if (!nameInput.trim()) {
-        alert("请输入名字");
+        showGamePopup("提示", "请输入你的姓名才能开始游戏！");
         return;
       }
       player.name = nameInput;
       document.getElementById("start-screen").style.display = "none";
       document.getElementById("game-screen").style.display = "block";
       document.getElementById("status-box").style.display = "block";
-      document.getElementById("items-box").style.display = "block";
       updateStatusBox();
       showIntro();
     }
@@ -403,7 +725,12 @@
       document.getElementById("game-screen").style.display = "none";
       document.getElementById("start-screen").style.display = "block";
       document.getElementById("status-box").style.display = "none";
-      document.getElementById("items-box").style.display = "none";
+      document.getElementById("items-button").style.display = "none";
+      
+      // 关闭所有弹窗
+      document.getElementById("items-dialog-modal").style.display = "none";
+      document.getElementById("item-confirm-modal").style.display = "none";
+      document.getElementById("game-popup").style.display = "none";
     }
 
     function showIntro() {
@@ -480,8 +807,10 @@
       player.money += actualSalary + bonus - player.rent;
       updateStatusBox();
 
-      let message = `月底结算：本月工作${actualWorkDays}天，实发工资${actualSalary}元，全勤奖${bonus}元，扣除房租${player.rent}元。\n当前存款：${player.money}元`;
-      alert(message);
+      let message = `本月工作${actualWorkDays}天<br>实发工资：${actualSalary}元<br>全勤奖：${bonus}元<br>扣除房租：${player.rent}元`;
+      let effectsText = `金钱+${actualSalary + bonus - player.rent}`;
+      
+      showGamePopup("💰 月底结算", message, effectsText);
       hasPerfectAttendance = true;
       absentDays = 0;
     }
@@ -868,7 +1197,7 @@
     function buyItem(itemId) {
       const item = items.find(i => i.id === itemId);
       if (!item || player.money < item.price) {
-        alert("购买失败！");
+        showGamePopup("购买失败", "金钱不足，无法购买此道具！");
         return;
       }
       
@@ -876,8 +1205,9 @@
       addItem(itemId);
       updateStatusBox();
       
-      alert(`购买成功！获得了${item.name}。`);
-      mallItemStore(); // 刷新商店页面
+      showGamePopup("🛒 购买成功", `获得了${item.name}！<br><br>${item.desc}`, `金钱-${item.price}`, function() {
+        mallItemStore(); // 刷新商店页面
+      });
     }
 
     // 公共处理
@@ -987,14 +1317,18 @@
         player.income = newIncome;
         player.lastJobChange = new Date(gameDate);
         player.mood = Math.min(100, player.mood + 20);
-        alert(`恭喜你成功入职${companyName}！\n新的月薪：${newIncome}元`);
+        
+        showGamePopup("🎉 跳槽成功", `恭喜你成功入职${companyName}！`, `月薪+${newIncome - (newIncome - (newIncome - player.income))}，心情+20`, function() {
+          updateStatusBox();
+          careerMenu();
+        });
       } else {
         player.mood = Math.max(0, player.mood - 10);
-        alert("很遗憾，面试失败了。");
+        showGamePopup("😞 面试失败", "很遗憾，面试没有通过。<br>不要灰心，继续努力提升技能吧！", "心情-10", function() {
+          updateStatusBox();
+          careerMenu();
+        });
       }
-      
-      updateStatusBox();
-      careerMenu();
     }
 
     function tryRaiseSalary() {
@@ -1021,14 +1355,18 @@
         player.income += raiseAmount;
         player.lastSalaryRaise = new Date(gameDate);
         player.mood = Math.min(100, player.mood + 10);
-        alert(`太好了！涨薪申请通过了！\n新的月薪：${player.income}元`);
+        
+        showGamePopup("💰 涨薪成功", `太好了！涨薪申请通过了！`, `月薪+${raiseAmount}，心情+10`, function() {
+          updateStatusBox();
+          careerMenu();
+        });
       } else {
         player.mood = Math.max(0, player.mood - 20);
-        alert("主管说现在公司效益不好，暂时没有涨薪的计划...");
+        showGamePopup("😔 涨薪失败", "主管说现在公司效益不好，暂时没有涨薪的计划...", "心情-20", function() {
+          updateStatusBox();
+          careerMenu();
+        });
       }
-      
-      updateStatusBox();
-      careerMenu();
     }
 
     // 住房相关功能
@@ -1097,7 +1435,7 @@
       const actualCost = newRent * 2 - oldDeposit; // 实际花费
       
       if (player.money < actualCost) {
-        alert(`资金不足！换房实际需要${actualCost}元（新房押金+首月房租${newRent * 2}元，扣除退回押金${oldDeposit}元）。`);
+        showGamePopup("💸 资金不足", `换房实际需要${actualCost}元<br>（新房押金+首月房租${newRent * 2}元，扣除退回押金${oldDeposit}元）`);
         return;
       }
 
@@ -1110,10 +1448,13 @@
       player.lastHouseChange = new Date(gameDate);
       player.mood = Math.min(100, player.mood + 15); // 搬新家心情好
       
-      alert(`恭喜你搬到了${houseName}！\n退回旧房押金${oldDeposit}元\n支付新房押金和首月房租共${newRent * 2}元\n新的月租：${newRent}元`);
+      let message = `恭喜你搬到了${houseName}！<br><br>退回旧房押金：${oldDeposit}元<br>支付新房押金和首月房租：${newRent * 2}元`;
+      let effectsText = `金钱-${actualCost}，心情+15`;
       
-      updateStatusBox();
-      housingMenu();
+      showGamePopup("🏠 搬家成功", message, effectsText, function() {
+        updateStatusBox();
+        housingMenu();
+      });
     }
   </script>
 </body>
