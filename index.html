@@ -37,6 +37,54 @@
     #status-box p:last-child {
       border-bottom: none;
     }
+    #items-box {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      width: 220px;
+      text-align: left;
+      line-height: 1.6;
+      display: none;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    #items-box .item-slot {
+      display: inline-block;
+      width: 60px;
+      height: 60px;
+      margin: 2px;
+      border: 2px solid #ddd;
+      border-radius: 6px;
+      background: #f9f9f9;
+      text-align: center;
+      cursor: pointer;
+      vertical-align: top;
+      position: relative;
+    }
+    #items-box .item-slot:hover {
+      border-color: #0078d7;
+      background: #f0f8ff;
+    }
+    #items-box .item-slot .item-name {
+      font-size: 10px;
+      margin-top: 5px;
+      line-height: 1.2;
+    }
+    #items-box .item-slot .item-count {
+      position: absolute;
+      bottom: 2px;
+      right: 4px;
+      background: #0078d7;
+      color: white;
+      border-radius: 8px;
+      font-size: 10px;
+      padding: 1px 4px;
+      min-width: 12px;
+    }
     #game-container {
       background: white;
       padding: 20px;
@@ -68,6 +116,10 @@
 </head>
 <body>
   <div id="status-box"></div>
+  <div id="items-box">
+    <h4 style="margin: 0 0 10px 0; color: #0078d7;">仓库</h4>
+    <div id="items-grid"></div>
+  </div>
   <div id="game-container">
     <h2>北漂人生</h2>
     <div id="start-screen">
@@ -126,6 +178,16 @@
       { name: "市中心顶级豪宅", rent: 20000, sleepMoodBonus: 20, sleepEnergyBonus: 25, gameMoodBonus: 15, desc: "奢华至极，身份象征" }
     ];
 
+    // 道具数据库
+    const items = [
+      { id: 1, name: "游戏卡带", price: 300, desc: "最新的3A大作，画面精美", energyCost: -5, moodGain: 25 },
+      { id: 2, name: "咖啡豆", price: 80, desc: "精品咖啡豆，提神醒脑", energyGain: 20, moodGain: 10 },
+      { id: 3, name: "按摩器", price: 500, desc: "缓解疲劳的神器", energyGain: 30, moodGain: 15 },
+      { id: 4, name: "编程书籍", price: 150, desc: "提升编程技能的好书", skillGain: 10, moodGain: 5 },
+      { id: 5, name: "肥宅快乐水", price: 50, desc: "总之就是很快乐", moodGain: 20 },
+      { id: 6, name: "蛋白粉", price: 120, desc: "健身人士必备", moodGain: 2, special: "gym_bonus" }
+    ];
+
     let player = {
       name: "",
       age: 22,
@@ -138,6 +200,8 @@
       skill: 500,  // 工作能力
       company: "小型互联网公司",
       house: "", // 初始没有房子
+      inventory: {}, // 道具库存
+      gymBonus: false, // 蛋白粉健身加成状态
       lastJobChange: new Date(2025, 8, 1), // 上次跳槽时间
       lastSalaryRaise: new Date(2025, 8, 1), // 上次涨薪时间
       lastHouseChange: new Date(2025, 8, 1) // 上次换房时间
@@ -167,6 +231,41 @@
       changes = {};
     }
 
+    // 道具相关函数
+    function addItem(itemId, quantity = 1) {
+      if (!player.inventory[itemId]) {
+        player.inventory[itemId] = 0;
+      }
+      player.inventory[itemId] += quantity;
+    }
+
+    function useItem(itemId) {
+      if (!player.inventory[itemId] || player.inventory[itemId] <= 0) {
+        return false;
+      }
+      
+      const item = items.find(i => i.id === itemId);
+      if (!item) return false;
+      
+      resetChanges();
+      
+      if (item.energyGain) applyChange('energy', item.energyGain);
+      if (item.energyCost) applyChange('energy', item.energyCost);
+      if (item.moodGain) applyChange('mood', item.moodGain);
+      if (item.skillGain) applyChange('skill', item.skillGain);
+      if (item.maxEnergyGain) applyChange('maxEnergy', item.maxEnergyGain);
+      
+      // 处理蛋白粉特殊效果
+      if (item.special === "gym_bonus") {
+        player.gymBonus = true;
+      }
+      
+      player.inventory[itemId]--;
+      updateStatusBox();
+      
+      return true;
+    }
+
     function getDateString() {
       const weekDays = ["周日", "周一", "周二", "周三", "周四", "周五", "周六"];
       return `${gameDate.getFullYear()}.${gameDate.getMonth() + 1}.${gameDate.getDate()} ${weekDays[gameDate.getDay()]}`;
@@ -188,6 +287,76 @@
         ${player.house ? '<button onclick="careerMenu()" style="width:100%; margin-top:5px;">关于工作...</button>' : ''}
         ${player.house ? '<button onclick="housingMenu()" style="width:100%; margin-top:5px;">关于住房...</button>' : ''}
       `;
+      updateItemsBox();
+    }
+
+    function updateItemsBox() {
+      const itemsGrid = document.getElementById("items-grid");
+      if (!itemsGrid) return;
+      
+      // 获取玩家拥有的道具
+      let ownedItems = [];
+      for (let itemId in player.inventory) {
+        if (player.inventory[itemId] > 0) {
+          const item = items.find(i => i.id == itemId);
+          if (item) {
+            ownedItems.push({...item, quantity: player.inventory[itemId]});
+          }
+        }
+      }
+      
+      if (ownedItems.length === 0) {
+        itemsGrid.innerHTML = '<p style="color:#999; font-size:12px; margin:0;">暂无道具</p>';
+        return;
+      }
+      
+      itemsGrid.innerHTML = ownedItems.map(item => `
+        <div class="item-slot" onclick="useItemDirectly(${item.id})" title="${item.name} - ${item.desc}">
+          <div class="item-name">${item.name}</div>
+          <div class="item-count">${item.quantity}</div>
+        </div>
+      `).join('');
+    }
+
+    function useItemDirectly(itemId) {
+      const item = items.find(i => i.id === itemId);
+      if (!item) return;
+      
+      if (useItem(itemId)) {
+        let message = `使用了${item.name}`;
+        
+        // 特殊的使用效果描述
+        if (item.name === "游戏卡带") {
+          message += "，沉迷在精彩的游戏中。";
+        } else if (item.name === "咖啡豆") {
+          message += "，冲了一杯香浓的咖啡。";
+        } else if (item.name === "按摩器") {
+          message += "，按摩缓解了疲劳。";
+        } else if (item.name === "编程书籍") {
+          message += "，学到了新的技术知识。";
+        } else if (item.name === "肥宅快乐水") {
+          message += "，喝了一口，感觉无比快乐。";
+        } else if (item.name === "蛋白粉") {
+          message += "，下次健身效果会更好！";
+        }
+        
+        // 显示效果
+        let effects = [];
+        if (item.energyGain) effects.push(`体力+${item.energyGain}`);
+        if (item.energyCost) effects.push(`体力${item.energyCost}`);
+        if (item.moodGain) effects.push(`心情+${item.moodGain}`);
+        if (item.skillGain) effects.push(`能力+${item.skillGain}`);
+        if (item.special === "gym_bonus") effects.push(`获得健身加成`);
+        
+        if (effects.length > 0) {
+          message += ` (${effects.join('，')})`;
+        }
+        
+        alert(message);
+        updateStatusBox();
+      } else {
+        alert("使用失败！");
+      }
     }
 
     function startGame() {
@@ -200,6 +369,7 @@
       document.getElementById("start-screen").style.display = "none";
       document.getElementById("game-screen").style.display = "block";
       document.getElementById("status-box").style.display = "block";
+      document.getElementById("items-box").style.display = "block";
       updateStatusBox();
       showIntro();
     }
@@ -218,6 +388,8 @@
         skill: 500,
         company: "小型互联网公司",
         house: "",
+        inventory: {}, // 重置库存
+        gymBonus: false, // 重置蛋白粉状态
         lastJobChange: new Date(2025, 8, 1),
         lastSalaryRaise: new Date(2025, 8, 1),
         lastHouseChange: new Date(2025, 8, 1)
@@ -231,6 +403,7 @@
       document.getElementById("game-screen").style.display = "none";
       document.getElementById("start-screen").style.display = "block";
       document.getElementById("status-box").style.display = "none";
+      document.getElementById("items-box").style.display = "none";
     }
 
     function showIntro() {
@@ -477,7 +650,15 @@
       resetChanges();
       applyChange('money', -100);
       applyChange('energy', -20);
-      applyChange('maxEnergy', 1);
+      
+      // 基础体力上限增加
+      let maxEnergyGain = 1;
+      // 如果有蛋白粉加成，额外+1
+      if (player.gymBonus) {
+        maxEnergyGain += 1;
+        player.gymBonus = false; // 使用后清除加成
+      }
+      applyChange('maxEnergy', maxEnergyGain);
       applyChange('mood', 15);
       handleAbsence();
 
@@ -487,7 +668,83 @@
         "你遇到了几个志同道合的健身伙伴，互相加油打气。"
       ];
       let message = events[Math.floor(Math.random() * events.length)];
+      
+      if (maxEnergyGain > 1) {
+        message += "蛋白粉发挥了作用，训练效果格外显著！";
+      }
+      
       endDay(message, changes);
+    }
+
+    function useItemMenu() {
+      const gameScreen = document.getElementById("game-screen");
+      
+      // 获取玩家拥有的道具
+      let ownedItems = [];
+      for (let itemId in player.inventory) {
+        if (player.inventory[itemId] > 0) {
+          const item = items.find(i => i.id == itemId);
+          if (item) {
+            ownedItems.push({...item, quantity: player.inventory[itemId]});
+          }
+        }
+      }
+      
+      if (ownedItems.length === 0) {
+        gameScreen.innerHTML = `
+          <p>你的背包里没有任何道具。</p>
+          <p>去商场买一些有用的道具吧！</p>
+          <button onclick="restMenu()">返回</button>
+        `;
+        return;
+      }
+      
+      gameScreen.innerHTML = `
+        <p>你的道具背包：</p>
+        <div style="max-height: 300px; overflow-y: auto;">
+          ${ownedItems.map(item => `
+            <div style="margin: 10px 0; padding: 10px; border: 1px solid #eee; text-align: left;">
+              <p><b>${item.name}</b> x${item.quantity}</p>
+              <p>${item.desc}</p>
+              <p style="font-size:12px; color:#666;">
+                效果：${getItemEffectText(item)}
+              </p>
+              <button onclick="useItemAndShow(${item.id})">使用</button>
+            </div>
+          `).join('')}
+        </div>
+        <hr>
+        <button onclick="restMenu()">返回</button>
+      `;
+    }
+
+    function useItemAndShow(itemId) {
+      const item = items.find(i => i.id === itemId);
+      if (!item) return;
+      
+      if (useItem(itemId)) {
+        let message = `你使用了${item.name}。${item.desc}`;
+        
+        // 特殊的使用效果描述
+        if (item.name === "游戏卡带") {
+          message = "你沉迷在游戏的精彩剧情中，虽然有些累但心情很好。";
+        } else if (item.name === "咖啡豆") {
+          message = "你冲了一杯香浓的咖啡，瞬间精神了不少。";
+        } else if (item.name === "按摩器") {
+          message = "按摩器缓解了你的疲劳，整个人都放松了。";
+        } else if (item.name === "编程书籍") {
+          message = "你认真阅读了编程书籍，学到了一些新的技术知识。";
+        } else if (item.name === "健康零食") {
+          message = "美味的零食让你心情愉悦。";
+        } else if (item.name === "蛋白粉") {
+          message = "好喝的蛋白粉，喝完不会头顶尖尖。";
+        }
+        
+        handleAbsence();
+        endDay(message, changes);
+      } else {
+        alert("使用失败！");
+      }
     }
 
     function goPark() {
@@ -533,6 +790,17 @@
     }
 
     function goMall() {
+      const gameScreen = document.getElementById("game-screen");
+      gameScreen.innerHTML = `
+        <p>你来到了商场，这里有很多店铺...</p>
+        <button onclick="mallShopping()">购买日用品</button>
+        <button onclick="mallItemStore()">道具商店</button>
+        <button onclick="mallRandomEvent()">随便逛逛</button>
+        <button onclick="goOutMenu()">返回</button>
+      `;
+    }
+
+    function mallShopping() {
       resetChanges();
       applyChange('money', -200);
       applyChange('energy', -15);
@@ -551,6 +819,65 @@
       
       handleAbsence();
       endDay(message, changes);
+    }
+
+    function mallRandomEvent() {
+      resetChanges();
+      applyChange('energy', -10);
+      applyChange('mood', 15);
+      handleAbsence();
+      
+      let message = "你在商场里闲逛，看了看各种商品，心情还不错。";
+      endDay(message, changes);
+    }
+
+    function mallItemStore() {
+      const gameScreen = document.getElementById("game-screen");
+      gameScreen.innerHTML = `
+        <p>欢迎来到道具商店！你可以购买各种有用的物品：</p>
+        <div style="max-height: 300px; overflow-y: auto;">
+          ${items.map(item => `
+            <div style="margin: 10px 0; padding: 10px; border: 1px solid #eee; text-align: left;">
+              <p><b>${item.name}</b> - ${item.desc}</p>
+              <p>价格：${item.price}元</p>
+              <p style="font-size:12px; color:#666;">
+                效果：${getItemEffectText(item)}
+              </p>
+              <button onclick="buyItem(${item.id})" ${player.money < item.price ? 'disabled style="background:#999"' : ''}>
+                ${player.money < item.price ? '金钱不足' : '购买'}
+              </button>
+            </div>
+          `).join('')}
+        </div>
+        <hr>
+        <button onclick="goMall()">返回商场</button>
+      `;
+    }
+
+    function getItemEffectText(item) {
+      let effects = [];
+      if (item.energyGain) effects.push(`体力+${item.energyGain}`);
+      if (item.energyCost) effects.push(`体力${item.energyCost}`);
+      if (item.moodGain) effects.push(`心情+${item.moodGain}`);
+      if (item.skillGain) effects.push(`能力+${item.skillGain}`);
+      if (item.maxEnergyGain) effects.push(`最大体力+${item.maxEnergyGain}`);
+      if (item.special === "gym_bonus") effects.push(`下次健身时体力上限额外+1`);
+      return effects.join('，') || '特殊效果';
+    }
+
+    function buyItem(itemId) {
+      const item = items.find(i => i.id === itemId);
+      if (!item || player.money < item.price) {
+        alert("购买失败！");
+        return;
+      }
+      
+      player.money -= item.price;
+      addItem(itemId);
+      updateStatusBox();
+      
+      alert(`购买成功！获得了${item.name}。`);
+      mallItemStore(); // 刷新商店页面
     }
 
     // 公共处理
