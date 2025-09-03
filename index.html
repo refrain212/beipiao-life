@@ -972,6 +972,7 @@
         <button onclick="goNetCafe()">网吧</button>
         <button onclick="goMall()">商场</button>
         <button onclick="goGym()">健身房</button>
+        <button onclick="goBackHome()">还是回家吧</button>
       `;
     }
 
@@ -1003,6 +1004,17 @@
       }
       
       endDay(message, changes);
+    }
+
+    function goBackHome() {
+      // 消耗体力并显示弹窗说明
+      resetChanges();
+      applyChange('energy', -5); // 出门一趟稍微消耗点体力
+      updateStatusBox(); // 更新状态显示
+      
+      showGamePopup("🏠 回到家中", "突然想起来煤气还没关。", "体力-5", function() {
+        restMenu(); // 回到休息菜单
+      });
     }
 
     function useItemMenu() {
