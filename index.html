@@ -394,10 +394,8 @@
 
     // 工具函数：应用属性变化
     function applyChange(key, value) {
-      if (key === 'energy') {
-        player.energy = Math.max(0, Math.min(player.maxEnergy, player.energy + value));
-      } else if (key === 'mood') {
-        player.mood = Math.max(0, Math.min(100, player.mood + value));
+      if (key === 'mood') {
+            player.mood = Math.max(0, Math.min(100, player.mood + value));
       } else if (key === 'maxEnergy') {
         player.maxEnergy = Math.min(120, player.maxEnergy + value);
       } else {
@@ -824,7 +822,7 @@
           <h3>游戏结束</h3>
           <p>时间：<b>${getDateString()}</b></p>
           <p>主角存款：<b>${player.money}</b> 元</p>
-          <p style="color:#C1437A;font-weight:bold;">金钱犹可贵，身体价更高</p>
+          <p style="color:#C1437A;font-weight:bold;">下辈子注意身体</p>
           <button onclick="resetGame()" style="margin-top: 20px;">重新开始</button>
         `;
         return;
