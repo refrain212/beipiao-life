@@ -397,7 +397,9 @@
     // 工具函数：应用属性变化
     function applyChange(key, value) {
       if (key === 'mood') {
-            player.mood = Math.max(0, Math.min(100, player.mood + value));
+        player.mood = Math.max(0, Math.min(100, player.mood + value));
+      } else if (key === 'energy') {
+        player.energy = Math.min(player.maxEnergy, player.energy + value);
       } else if (key === 'maxEnergy') {
         player.maxEnergy = Math.min(120, player.maxEnergy + value);
       } else {
@@ -800,7 +802,7 @@
 
     function settleSalary() {
       const workDaysInMonth = 26;
-      let bonus = hasPerfectAttendance ? 2000 : 0;
+      let bonus = hasPerfectAttendance ? Math.floor(player.income * 0.25) : 0;
       let dailySalary = Math.floor(player.income / workDaysInMonth);
       let actualWorkDays = workDaysInMonth - absentDays;
       actualWorkDays = Math.max(0, actualWorkDays);
@@ -1266,11 +1268,16 @@
         player.lastJobAttemptMonth = currentMonth;
       }
       
-      // 跳槽限制：首月（9月）不能跳槽，从次月开始每月只能尝试一次
+      // 跳槽限制：首月（9月）和跳槽后第一个月不能跳槽
       let jobChangeDisabled = false;
       let jobChangeMessage = "找工作跳槽";
       
-      if (currentMonth === 8) { // 首月（9月，索引为8）不能跳槽
+      // 检查是否在跳槽后的第一个月内
+      const lastJobChangeMonth = player.lastJobChange.getMonth();
+      const isFirstMonthAfterJobChange = (currentMonth === lastJobChangeMonth) && 
+                                        (gameDate.getFullYear() === player.lastJobChange.getFullYear());
+      
+      if (currentMonth === 8 || isFirstMonthAfterJobChange && currentMonth !== 8) { // 首月（9月，索引为8）和跳槽后首月不能跳槽
         jobChangeDisabled = true;
         jobChangeMessage = "找工作跳槽 (刚来就想跳槽？)";
       } else if (player.monthlyJobAttempts >= 1) {
@@ -1278,7 +1285,7 @@
         jobChangeMessage = "找工作跳槽 (本月已尝试过)";
       }
       
-      let raiseDisabled = daysSinceLastRaise < 15; // 半个月内不能要求涨薪
+      let raiseDisabled = daysSinceLastRaise < 30; // 一个月内不能要求涨薪
 
       gameScreen.innerHTML = `
         <p>你目前在<b>${player.company}</b>工作</p>
@@ -1288,7 +1295,7 @@
           ${jobChangeMessage}
         </button>
         <button onclick="tryRaiseSalary()" ${raiseDisabled ? 'disabled style="background:#999"' : ''}>
-          申请涨薪 ${raiseDisabled ? '(还需等待'+(15-daysSinceLastRaise)+'天)' : ''}
+          申请涨薪 ${raiseDisabled ? '(还需等待'+(30-daysSinceLastRaise)+'天)' : ''}
         </button>
         <hr>
         <button onclick="nextStep()">返回</button>
@@ -1296,15 +1303,12 @@
     }
 
     function tryJobChange() {
-      // 检查当前月份，首月不能跳槽，从次月开始才消耗跳槽机会
+      // 检查当前月份，首月不能跳槽
       const currentMonth = gameDate.getMonth();
       
       if (currentMonth === 8) { // 首月（9月）不能跳槽
         return; // 直接返回，不应该能执行到这里，但以防万一
       }
-      
-      // 从次月开始，增加本月跳槽尝试次数
-      player.monthlyJobAttempts += 1;
       
       // 随机选择3个公司
       let availableCompanies = companies.filter(c => c.income > player.income);
@@ -1351,6 +1355,9 @@
     }
 
     function attemptJobChange(companyName, requiredSkill, newIncome) {
+      // 在实际尝试面试时才消耗跳槽机会
+      player.monthlyJobAttempts += 1;
+      
       const successRate = calculateJobSuccessRate(player.skill, requiredSkill);
       const success = Math.random() * 100 < successRate;
 
