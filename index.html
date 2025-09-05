@@ -315,19 +315,19 @@
     // 游戏数据
     // 公司数据库
     const companies = [
-      { name: "字节跳动", minSkill: 800, income: 25000, desc: "互联网巨头，工作强度较大" },
-      { name: "腾讯", minSkill: 850, income: 28000, desc: "环境稳定，福利优厚" },
-      { name: "阿里巴巴", minSkill: 900, income: 30000, desc: "996福报" },
-      { name: "百度", minSkill: 750, income: 22000, desc: "老牌大厂" },
-      { name: "京东", minSkill: 700, income: 20000, desc: "电商大厂" },
-      { name: "美团", minSkill: 680, income: 18000, desc: "发展迅速" },
-      { name: "网易", minSkill: 750, income: 21000, desc: "氛围轻松" },
-      { name: "小米", minSkill: 650, income: 17000, desc: "年轻有活力" },
-      { name: "快手", minSkill: 780, income: 24000, desc: "发展空间大" },
-      { name: "滴滴", minSkill: 700, income: 19000, desc: "平台规模大" },
-      { name: "拼多多", minSkill: 800, income: 26000, desc: "高强度高回报" },
-      { name: "猿辅导", minSkill: 650, income: 16000, desc: "教育科技" },
-      { name: "BOSS直聘", minSkill: 600, income: 15000, desc: "环境友好" }
+      { name: "字节跳动", minSkill: 1200, income: 25000, desc: "互联网巨头，工作强度较大" },
+      { name: "腾讯", minSkill: 1300, income: 28000, desc: "环境稳定，福利优厚" },
+      { name: "阿里巴巴", minSkill: 1400, income: 30000, desc: "996福报" },
+      { name: "百度", minSkill: 1100, income: 22000, desc: "老牌大厂" },
+      { name: "京东", minSkill: 1000, income: 20000, desc: "电商大厂" },
+      { name: "美团", minSkill: 950, income: 18000, desc: "发展迅速" },
+      { name: "网易", minSkill: 1050, income: 21000, desc: "氛围轻松" },
+      { name: "小米", minSkill: 900, income: 17000, desc: "年轻有活力" },
+      { name: "快手", minSkill: 1150, income: 24000, desc: "发展空间大" },
+      { name: "滴滴", minSkill: 1000, income: 19000, desc: "平台规模大" },
+      { name: "拼多多", minSkill: 1200, income: 26000, desc: "高强度高回报" },
+      { name: "猿辅导", minSkill: 850, income: 16000, desc: "教育科技" },
+      { name: "BOSS直聘", minSkill: 800, income: 15000, desc: "环境友好" }
     ];
 
     // 住房数据库
@@ -384,7 +384,9 @@
       gymBonus: false, // 蛋白粉健身加成状态
       lastJobChange: new Date(2025, 8, 1), // 上次跳槽时间
       lastSalaryRaise: new Date(2025, 8, 1), // 上次涨薪时间
-      lastHouseChange: new Date(2025, 8, 1) // 上次换房时间
+      lastHouseChange: new Date(2025, 8, 1), // 上次换房时间
+      monthlyJobAttempts: 0, // 本月跳槽尝试次数
+      lastJobAttemptMonth: 8 // 上次跳槽尝试的月份
     };
 
     let gameDate = new Date(2025, 8, 1);
@@ -712,7 +714,9 @@
         gymBonus: false, // 重置蛋白粉状态
         lastJobChange: new Date(2025, 8, 1),
         lastSalaryRaise: new Date(2025, 8, 1),
-        lastHouseChange: new Date(2025, 8, 1)
+        lastHouseChange: new Date(2025, 8, 1),
+        monthlyJobAttempts: 0, // 本月跳槽尝试次数
+        lastJobAttemptMonth: 8 // 上次跳槽尝试的月份
       };
       gameDate = new Date(2025, 8, 1);
       hasPerfectAttendance = true;
@@ -1255,7 +1259,25 @@
       const daysSinceLastJobChange = Math.floor((gameDate - player.lastJobChange) / (1000 * 60 * 60 * 24));
       const daysSinceLastRaise = Math.floor((gameDate - player.lastSalaryRaise) / (1000 * 60 * 60 * 24));
       
-      let jobChangeDisabled = daysSinceLastJobChange < 30; // 30天内不能跳槽
+      // 检查是否是新月份，如果是则重置跳槽尝试次数
+      const currentMonth = gameDate.getMonth();
+      if (currentMonth !== player.lastJobAttemptMonth) {
+        player.monthlyJobAttempts = 0;
+        player.lastJobAttemptMonth = currentMonth;
+      }
+      
+      // 跳槽限制：首月（9月）不能跳槽，从次月开始每月只能尝试一次
+      let jobChangeDisabled = false;
+      let jobChangeMessage = "找工作跳槽";
+      
+      if (currentMonth === 8) { // 首月（9月，索引为8）不能跳槽
+        jobChangeDisabled = true;
+        jobChangeMessage = "找工作跳槽 (刚来就想跳槽？)";
+      } else if (player.monthlyJobAttempts >= 1) {
+        jobChangeDisabled = true;
+        jobChangeMessage = "找工作跳槽 (本月已尝试过)";
+      }
+      
       let raiseDisabled = daysSinceLastRaise < 15; // 半个月内不能要求涨薪
 
       gameScreen.innerHTML = `
@@ -1263,7 +1285,7 @@
         <p>月薪：<b>${player.income}</b>元</p>
         <hr>
         <button onclick="tryJobChange()" ${jobChangeDisabled ? 'disabled style="background:#999"' : ''}>
-          找工作跳槽 ${jobChangeDisabled ? '(还需等待'+(30-daysSinceLastJobChange)+'天)' : ''}
+          ${jobChangeMessage}
         </button>
         <button onclick="tryRaiseSalary()" ${raiseDisabled ? 'disabled style="background:#999"' : ''}>
           申请涨薪 ${raiseDisabled ? '(还需等待'+(15-daysSinceLastRaise)+'天)' : ''}
@@ -1274,6 +1296,16 @@
     }
 
     function tryJobChange() {
+      // 检查当前月份，首月不能跳槽，从次月开始才消耗跳槽机会
+      const currentMonth = gameDate.getMonth();
+      
+      if (currentMonth === 8) { // 首月（9月）不能跳槽
+        return; // 直接返回，不应该能执行到这里，但以防万一
+      }
+      
+      // 从次月开始，增加本月跳槽尝试次数
+      player.monthlyJobAttempts += 1;
+      
       // 随机选择3个公司
       let availableCompanies = companies.filter(c => c.income > player.income);
       let choices = [];
@@ -1333,8 +1365,8 @@
           careerMenu();
         });
       } else {
-        player.mood = Math.max(0, player.mood - 10);
-        showGamePopup("😞 面试失败", "很遗憾，面试没有通过。<br>不要灰心，继续努力提升技能吧！", "心情-10", function() {
+        player.mood = Math.max(0, player.mood - 15);
+        showGamePopup("😞 面试失败", "很遗憾，面试没有通过。<br>不要灰心，继续努力提升技能吧！", "心情-15", function() {
           updateStatusBox();
           careerMenu();
         });
