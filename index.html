@@ -177,7 +177,7 @@
     }
     .game-popup h3 {
       margin: 0 0 15px 0;
-      color: #0078d7;
+      color: #0096d7;
       font-size: 18px;
       border-bottom: 2px solid #e9ecef;
       padding-bottom: 10px;
@@ -189,7 +189,7 @@
       border-radius: 10px;
       text-align: left;
       line-height: 1.6;
-      border-left: 4px solid #0078d7;
+      border-left: none;
     }
     .game-popup .popup-effects {
       margin: 10px 0;
@@ -248,11 +248,24 @@
       background: #005fa3;
     }
     input {
-      padding: 6px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-      margin-top: 8px;
+      padding: 12px 16px;
+      border-radius: 10px;
+      border: 2px solid #e0e0e0;
+      margin-top: 10px;
       width: 80%;
+      font-size: 16px;
+      transition: all 0.3s ease;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    input:focus {
+      outline: none;
+      border-color: #0078d7;
+      box-shadow: 0 0 10px rgba(0,120,215,0.3);
+      transform: translateY(-2px);
+    }
+    input::placeholder {
+      color: #999;
+      font-style: italic;
     }
   </style>
 </head>
@@ -301,12 +314,12 @@
   </div>
   
   <div id="game-container">
-    <h2>北漂人生</h2>
+    <h2 style="color: #0078d7; margin-bottom: 20px; font-size: 28px; text-shadow: 2px 2px 4px rgba(0,0,0,0.1);">🏙️ 北漂人生</h2>
     <div id="start-screen">
-      <p>请输入你的姓名：</p>
-      <input type="text" id="name-input" placeholder="姓名">
+      <p style="font-size: 18px; color: #333; margin-bottom: 15px;">请输入你的姓名：</p>
+      <input type="text" id="name-input" placeholder="在这里输入你的名字...">
       <br>
-      <button onclick="startGame()">开始游戏</button>
+      <button onclick="startGame()" style="margin-top: 20px; padding: 12px 24px; font-size: 16px; background: linear-gradient(135deg, #0078d7 0%, #005fa3 100%); border-radius: 10px; box-shadow: 0 4px 10px rgba(0,120,215,0.3);">开始游戏</button>
     </div>
     <div id="game-screen" style="display:none;"></div>
   </div>
@@ -828,7 +841,7 @@
           <h3>游戏结束</h3>
           <p>时间：<b>${getDateString()}</b></p>
           <p>主角存款：<b>${player.money}</b> 元</p>
-          <p style="color:#C1437A;font-weight:bold;">下辈子注意身体</p>
+          <p style="color:#C1437A;font-weight:bold;">身体是革命的本钱</p>
           <button onclick="resetGame()" style="margin-top: 20px;">重新开始</button>
         `;
         return;
