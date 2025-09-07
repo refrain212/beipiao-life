@@ -319,6 +319,26 @@
       <p style="font-size: 18px; color: #333; margin-bottom: 15px;">请输入你的姓名：</p>
       <input type="text" id="name-input" placeholder="在这里输入你的名字...">
       <br>
+      <p style="font-size: 16px; color: #333; margin: 20px 0 10px 0;">选择你的生日：</p>
+      <div style="margin: 10px 0;">
+        <select id="birth-month" style="padding: 8px; margin-right: 10px; border-radius: 5px; border: 2px solid #e0e0e0;" onchange="updateDayOptions()">
+          <option value="0">1月</option>
+          <option value="1">2月</option>
+          <option value="2">3月</option>
+          <option value="3">4月</option>
+          <option value="4">5月</option>
+          <option value="5">6月</option>
+          <option value="6">7月</option>
+          <option value="7">8月</option>
+          <option value="8">9月</option>
+          <option value="9">10月</option>
+          <option value="10">11月</option>
+          <option value="11">12月</option>
+        </select>
+        <select id="birth-day" style="padding: 8px; border-radius: 5px; border: 2px solid #e0e0e0;">
+          <!-- 动态生成日期选项 -->
+        </select>
+      </div>
       <button onclick="startGame()" style="margin-top: 20px; padding: 12px 24px; font-size: 16px; background: linear-gradient(135deg, #0078d7 0%, #005fa3 100%); border-radius: 10px; box-shadow: 0 4px 10px rgba(0,120,215,0.3);">开始游戏</button>
     </div>
     <div id="game-screen" style="display:none;"></div>
@@ -381,9 +401,54 @@
       { id: 6, name: "蛋白粉", price: 120, desc: "健身人士必备", moodGain: 2, special: "gym_bonus" }
     ];
 
+    // 日期处理函数
+    function getDaysInMonth(month, year = 2005) {
+      // 月份是0-11，这里转换为1-12来计算
+      return new Date(year, month + 1, 0).getDate();
+    }
+
+    function updateDayOptions() {
+      const monthSelect = document.getElementById("birth-month");
+      const daySelect = document.getElementById("birth-day");
+      const selectedMonth = parseInt(monthSelect.value);
+      const currentDay = parseInt(daySelect.value) || 1;
+      
+      // 清除现有选项
+      daySelect.innerHTML = '';
+      
+      // 获取该月的天数
+      const daysInMonth = getDaysInMonth(selectedMonth);
+      
+      // 生成日期选项
+      for (let day = 1; day <= daysInMonth; day++) {
+        const option = document.createElement('option');
+        option.value = day;
+        option.textContent = day + '日';
+        if (day === currentDay && day <= daysInMonth) {
+          option.selected = true;
+        } else if (day === 1 && currentDay > daysInMonth) {
+          option.selected = true;
+        }
+        daySelect.appendChild(option);
+      }
+    }
+
+    // 计算游戏开始日期（确保主角开局时22岁）
+    function calculateGameStartDate(birthMonth, birthDay) {
+      const birthYear = 2005;
+      const currentYear = 2027; // 22岁时应该是2027年
+      
+      // 游戏开始日期就是22岁生日当天（入职第一天）
+      const gameStart = new Date(currentYear, birthMonth, birthDay);
+      
+      return gameStart;
+    }
+
     let player = {
       name: "",
       age: 22,
+      birthMonth: 0, // 生日月份 (0-11)
+      birthDay: 1,   // 生日日期 (1-31)
       money: 10000,
       income: 8000,
       rent: 0, // 初始没有房租
@@ -467,10 +532,14 @@
     }
 
     function updateStatusBox() {
+      const monthNames = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
+      const birthday = `${monthNames[player.birthMonth]}${player.birthDay}日`;
+      
       const statusBox = document.getElementById("status-box");
       statusBox.innerHTML = `
         <p>日期：${getDateString()}</p>
         <p>姓名：${player.name} | 年龄：${player.age}岁</p>
+        <p>生日：${birthday}</p>
         <p>公司：${player.company}</p>
         <p>月薪：${player.income}元</p>
         <p>住房：${player.house || "暂无"}</p>
@@ -699,16 +768,32 @@
 
     function startGame() {
       const nameInput = document.getElementById("name-input").value;
+      const birthMonth = parseInt(document.getElementById("birth-month").value);
+      const birthDay = parseInt(document.getElementById("birth-day").value);
+      
       if (!nameInput.trim()) {
         showGamePopup("提示", "请输入你的姓名才能开始游戏！");
         return;
       }
+      
       player.name = nameInput;
+      player.birthMonth = birthMonth;
+      player.birthDay = birthDay;
+      
+      // 根据生日计算游戏开始日期
+      gameDate = calculateGameStartDate(birthMonth, birthDay);
+      
+      // 更新所有基于日期的属性
+      player.lastJobChange = new Date(gameDate);
+      player.lastSalaryRaise = new Date(gameDate);
+      player.lastHouseChange = new Date(gameDate);
+      
       document.getElementById("start-screen").style.display = "none";
       document.getElementById("game-screen").style.display = "block";
       document.getElementById("status-box").style.display = "block";
-      updateStatusBox();
-      showIntro();
+      
+      // 进入梦境选择
+      showDreamChoice();
     }
 
     function resetGame() {
@@ -716,6 +801,8 @@
       player = {
         name: "",
         age: 22,
+        birthMonth: 0,
+        birthDay: 1,
         money: 10000,
         income: 8000,
         rent: 0,
@@ -727,18 +814,20 @@
         house: "",
         inventory: {}, // 重置库存
         gymBonus: false, // 重置蛋白粉状态
-        lastJobChange: new Date(2025, 8, 1),
-        lastSalaryRaise: new Date(2025, 8, 1),
-        lastHouseChange: new Date(2025, 8, 1),
+        lastJobChange: new Date(2027, 0, 1), // 临时日期，实际会在startGame中重新计算
+        lastSalaryRaise: new Date(2027, 0, 1),
+        lastHouseChange: new Date(2027, 0, 1),
         monthlyJobAttempts: 0, // 本月跳槽尝试次数
-        lastJobAttemptMonth: 8 // 上次跳槽尝试的月份
+        lastJobAttemptMonth: 0 // 上次跳槽尝试的月份
       };
-      gameDate = new Date(2025, 8, 1);
+      gameDate = new Date(2027, 0, 1); // 临时日期，实际会在startGame中重新计算
       hasPerfectAttendance = true;
       absentDays = 0;
 
       // 重置界面
       document.getElementById("name-input").value = "";
+      document.getElementById("birth-month").value = "0";
+      updateDayOptions(); // 重置日期选项
       document.getElementById("game-screen").style.display = "none";
       document.getElementById("start-screen").style.display = "block";
       document.getElementById("status-box").style.display = "none";
@@ -750,15 +839,87 @@
       document.getElementById("game-popup").style.display = "none";
     }
 
+    // 页面加载时初始化日期选项
+    window.addEventListener('load', function() {
+      updateDayOptions();
+    });
+
+    // 梦境选择系统
+    function showDreamChoice() {
+      const gameScreen = document.getElementById("game-screen");
+      gameScreen.innerHTML = `
+        <div style="background: linear-gradient(135deg, #2c1810, #1a1a2e); color: #f0f0f0; padding: 20px; border-radius: 10px; margin: 10px 0;">
+          <p style="font-style: italic; color: #b8b8d4; margin-bottom: 15px;">你做了一个梦...</p>
+          <hr style="border-color: #444;">
+          <p>在朦胧的梦境中，你看到一个面目模糊的神秘人影。</p>
+          <p>那人用低沉的声音问你：</p>
+          <p style="color: #e6e6fa; font-weight: bold;">"你想过怎样的人生？"</p>
+          <hr style="border-color: #444;">
+          <p>你的回答是：</p>
+          <button onclick="chooseDream('normal')" style="margin: 5px; padding: 10px 15px; background: #4a5568; color: white; border: none; border-radius: 5px; cursor: pointer;">普普通通就好</button>
+          <button onclick="chooseDream('random')" style="margin: 5px; padding: 10px 15px; background: #2d3748; color: white; border: none; border-radius: 5px; cursor: pointer;">随便吧</button>
+        </div>
+      `;
+    }
+
+    function chooseDream(choice) {
+      const gameScreen = document.getElementById("game-screen");
+      
+      if (choice === 'normal') {
+        // 普通开局 - 保持默认设置
+        gameScreen.innerHTML = `
+          <div style="background: linear-gradient(135deg, #2c1810, #1a1a2e); color: #f0f0f0; padding: 20px; border-radius: 10px; margin: 10px 0;">
+            <p>你回答<span style="color: #90cdf4;">"普普通通就好"</span>后，那人点了点头，突然消失不见了。</p>
+            <hr style="border-color: #444;">
+            <p style="font-style: italic; color: #b8b8d4;">梦境渐渐散去...</p>
+            <button onclick="finishDream()" style="margin-top: 15px; padding: 10px 20px; background: #4a5568; color: white; border: none; border-radius: 5px; cursor: pointer;">醒来</button>
+          </div>
+        `;
+      } else if (choice === 'random') {
+        // 随机开局 - 随机化属性
+        const randomIncome = Math.floor(Math.random() * (10000 - 6000 + 1)) + 6000; // 6000-10000
+        const randomMoney = Math.floor(Math.random() * (20000 - 3500 + 1)) + 3500;   // 3500-20000
+
+        player.income = randomIncome;
+        player.money = randomMoney;
+        
+        gameScreen.innerHTML = `
+          <div style="background: linear-gradient(135deg, #2c1810, #1a1a2e); color: #f0f0f0; padding: 20px; border-radius: 10px; margin: 10px 0;">
+            <p>你回答<span style="color: #fbb6ce;">"随便吧"</span>后，那人点了点头，突然消失不见了。</p>
+            <p style="color: #a78bfa;">在他消失的瞬间，你感到一股奇异的力量涌入体内...</p>
+            <hr style="border-color: #444;">
+            <p style="font-style: italic; color: #b8b8d4;">梦境渐渐散去...</p>
+            <p style="color: #68d391; font-size: 12px;">你感觉到命运发生了微妙的变化</p>
+            <button onclick="finishDream()" style="margin-top: 15px; padding: 10px 20px; background: #553c9a; color: white; border: none; border-radius: 5px; cursor: pointer;">醒来</button>
+          </div>
+        `;
+      }
+    }
+
+    function finishDream() {
+      updateStatusBox();
+      showIntro();
+    }
+
     function showIntro() {
       const gameScreen = document.getElementById("game-screen");
       gameScreen.innerHTML = `
         <p>你叫 <b>${player.name}</b>，今年 22 岁，本科毕业后来到北京，开始了北漂生活。</p>
         <p>你在一家互联网小厂工作，月收入 <b>${player.income}</b> 元。</p>
-        <p>你当前的存款是 <b>${player.money}</b> 元。</p>
-        <hr>
-        <p>现在你需要找个地方住...</p>
-        <button onclick="chooseInitialHouse()">寻找房源</button>
+        <p>赖于父母的资助和你自己攒的资金，你当前的存款是 <b>${player.money}</b> 元。</p>
+        <p>今天是你入职公司的第一天。好巧，今天也是你的生日。</p>
+        <p>可惜没有时间庆祝，摆在你眼前的还有许多问题。</p>
+        <p>等稳定下来一定要给自己好好过一个生日，你暗暗想着。</p>
+        <p>没时间多想了，你得赶紧去公司报道。</p>
+        <button onclick="goOutBeforeWork()">出门</button>
+      `;
+    }
+
+    function goOutBeforeWork() {
+      const gameScreen = document.getElementById("game-screen");
+      gameScreen.innerHTML = `
+        <p>出门之前，你扫视了出租屋，回想起了一个月前租房的情景</p>
+        <button onclick="chooseInitialHouse()">回想</button>
       `;
     }
 
@@ -767,19 +928,20 @@
       const outerRingHouses = houses.filter(h => h.name.includes("五环外"));
       
       gameScreen.innerHTML = `
+        <p style="color:#999; font-style:italic; text-align:center; margin-bottom:15px;">——— 一个月前的回忆 ———</p>
         <p>你在租房app上搜索着适合的房源...</p>
         <p style="color:#666; font-style:italic;">"现在没钱，公司也挺偏的，就这个地段好了......"</p>
         <hr>
         <p>你找到了以下几个五环外的房源：</p>
         ${outerRingHouses.map(h => `
-          <div style="margin: 10px 0; padding: 10px; border: 1px solid #eee; text-align: left;">
+          <div style="margin: 10px 0; padding: 10px; border: 2px dashed #ccc; border-radius: 8px; text-align: left; background: rgba(240, 240, 240, 0.5); filter: blur(0.5px); opacity: 0.8;">
             <p><b>${h.name}</b> - ${h.desc}</p>
             <p>月租：${h.rent}元</p>
             <p style="font-size:12px; color:#666;">
               睡觉加成：体力+${30 + h.sleepEnergyBonus}，心情+${10 + h.sleepMoodBonus} | 
               游戏加成：心情+${15 + h.gameMoodBonus}
             </p>
-            <button onclick="selectInitialHouse('${h.name}', ${h.rent})">选择这里</button>
+            <button onclick="selectInitialHouse('${h.name}', ${h.rent})" style="opacity: 1; filter: none;">选择这里</button>
           </div>
         `).join('')}
       `;
@@ -792,14 +954,61 @@
       
       const gameScreen = document.getElementById("game-screen");
       gameScreen.innerHTML = `
-        <p>你选择了 <b>${houseName}</b>，月租 <b>${houseRent}</b> 元。</p>
+        
+        <p>最终挑挑拣拣，你选择了<b>${houseName}</b>，月租 <b>${houseRent}</b> 元。</p>
         <p>支付了押金和首月房租共 <b>${houseRent * 2}</b> 元。</p>
         <p>当前存款：<b>${player.money}</b> 元。</p>
-        <hr>
-        <p>清晨，你在新租的房子里醒来，望着天花板，心里想着未来的路...</p>
-        <button onclick="finishIntro()">开始新生活</button>
+        <p>房子环境一般，离公司也远，只能说是权宜之计。</p>
+        <p style="color:#999; font-style:italic; text-align:center;">——————— 回忆结束 ———————</p>
+        <p>但现在不是想这些的时候了。</p>
+        <p>得赶紧去公司报道了，迟到可不好。</p>
+        <p>以后有钱了再租个好一点的房子吧，至于什么时候能买得起自己的房子……你摇了摇头，不再去想。</p>
+        <button onclick="goToWork()">出门上班</button>
       `;
       updateStatusBox();
+    }
+
+    // 第一天强制上班函数
+    function goToWork() {
+      const gameScreen = document.getElementById("game-screen");
+      
+      // 第一天必须上班，显示特殊剧情
+      resetChanges();
+      applyChange('energy', -5);
+      applyChange('mood', -5);
+      applyChange('skill', 5);
+      
+      gameScreen.innerHTML = `
+        <p><b>第一天上班</b></p>
+        <hr>
+        <p>你怀着忐忑不安的心情来到公司楼下，抬头望着这栋并不算高的写字楼。</p>
+        <p>"就是这里了..."你深吸一口气，走进了大厅。</p>
+        <p>前台小姐姐很热情地为你办理了入职手续，给了你工牌和临时电脑密码。</p>
+        <p>你被分配到了开发部，坐在了一个靠窗的位置。虽然是小公司，但同事们看起来都很友善。</p>
+        <p>组长给你介绍了工作内容和项目情况，虽然技术栈有些陌生，但你觉得自己能够胜任。</p>
+        <p>"新人嘛，慢慢来，不要有压力。"组长拍了拍你的肩膀说道。</p>
+        <p>第一天主要是熟悉环境和代码，虽然有些紧张，但总体来说还算顺利。</p>
+        <hr>
+        <p style="color:#666; font-size:14px;"><b>体力 -5，心情 -5，能力 +5</b></p>
+        <button onclick="firstDayEnd()">下班回家</button>
+      `;
+      
+      updateStatusBox();
+    }
+
+    // 第一天结束函数
+    function firstDayEnd() {
+      const gameScreen = document.getElementById("game-screen");
+      gameScreen.innerHTML = `
+        <p>你拖着疲惫的身体回到了租住的房间。</p>
+        <p>虽然第一天有些紧张，但总算是顺利度过了。</p>
+        <p>"北漂生活，正式开始了..."你看着窗外的夜景，心中五味杂陈。</p>
+        <hr>
+        <p>从明天开始，你需要自己规划每一天的生活。</p>
+        <button onclick="finishIntro()">开始新的一天</button>
+      `;
+      nextDay();
+      updateStatusBox(); // 更新状态显示新的日期
     }
 
     function finishIntro() {
@@ -808,8 +1017,45 @@
 
     function nextDay() {
       gameDate.setDate(gameDate.getDate() + 1);
+      checkBirthday();
       if (gameDate.getDate() === 1) {
         settleSalary();
+      }
+    }
+
+    function checkBirthday() {
+      const today = gameDate;
+      if (today.getMonth() === player.birthMonth && today.getDate() === player.birthDay) {
+        player.age++;
+        handleBirthdayEvent();
+      }
+    }
+
+    function handleBirthdayEvent() {
+      if (player.age === 23) {
+        // 23岁生日特殊事件
+        player.money += 2000;
+        player.mood = Math.min(100, player.mood + 30);
+        
+        showGamePopup(
+          "🎂 生日快乐！", 
+          `今天是你的${player.age}岁生日！<br><br>📱 微信消息不断弹出...<br><br>"儿子生日快乐！妈妈给你发了2000块钱红包，记得收一下~"<br><br>"生日快乐啊，小子都23了，什么时候带个女朋友回家？隔壁老王家的孩子都订婚了..."<br><br>看着父母的关心和"催婚"，你心情复杂但也很温暖。`, 
+          "年龄+1，金钱+2000，心情+30"
+        );
+      } else {
+        // 普通生日
+        player.mood = Math.min(100, player.mood + 20);
+        let birthdayMessages = [
+          `今天是你的${player.age}岁生日！虽然独自在北京，但还是要庆祝一下。`,
+          `${player.age}岁生日快乐！时间过得真快，又长大了一岁。`,
+          `生日快乐！${player.age}岁的你在北京继续奋斗着。`
+        ];
+        
+        showGamePopup(
+          "🎂 生日快乐！", 
+          birthdayMessages[Math.floor(Math.random() * birthdayMessages.length)], 
+          `年龄+1，心情+20`
+        );
       }
     }
 
