@@ -464,7 +464,9 @@
       lastSalaryRaise: new Date(2025, 8, 1), // 上次涨薪时间
       lastHouseChange: new Date(2025, 8, 1), // 上次换房时间
       monthlyJobAttempts: 0, // 本月跳槽尝试次数
-      lastJobAttemptMonth: 8 // 上次跳槽尝试的月份
+      lastJobAttemptMonth: 8, // 上次跳槽尝试的月份
+      isFirstMonth: true, // 是否为首月
+      hireDate: null // 入职日期
     };
 
     let gameDate = new Date(2025, 8, 1);
@@ -550,6 +552,7 @@
         <p>存款：${player.money}元</p>
         ${player.house ? '<button onclick="careerMenu()" style="width:100%; margin-top:5px;">关于工作...</button>' : ''}
         ${player.house ? '<button onclick="housingMenu()" style="width:100%; margin-top:5px;">关于住房...</button>' : ''}
+        ${player.name ? '<button onclick="jumpTo23Birthday()" style="width:100%; margin-top:5px; background:#ff6b6b; color:white;">🎂 测试：跳到23岁生日</button>' : ''}
       `;
       updateItemsButton();
     }
@@ -783,6 +786,9 @@
       // 根据生日计算游戏开始日期
       gameDate = calculateGameStartDate(birthMonth, birthDay);
       
+      // 设置入职日期
+      player.hireDate = new Date(gameDate);
+      
       // 更新所有基于日期的属性
       player.lastJobChange = new Date(gameDate);
       player.lastSalaryRaise = new Date(gameDate);
@@ -818,7 +824,9 @@
         lastSalaryRaise: new Date(2027, 0, 1),
         lastHouseChange: new Date(2027, 0, 1),
         monthlyJobAttempts: 0, // 本月跳槽尝试次数
-        lastJobAttemptMonth: 0 // 上次跳槽尝试的月份
+        lastJobAttemptMonth: 0, // 上次跳槽尝试的月份
+        isFirstMonth: true, // 是否为首月
+        hireDate: null // 入职日期
       };
       gameDate = new Date(2027, 0, 1); // 临时日期，实际会在startGame中重新计算
       hasPerfectAttendance = true;
@@ -968,6 +976,44 @@
       updateStatusBox();
     }
 
+    // 测试功能：快速跳转到23岁生日
+    function jumpTo23Birthday() {
+      // 设置年龄为22岁，即将到23岁
+      player.age = 22;
+      
+      // 计算23岁生日日期
+      const nextYear = player.hireDate.getFullYear() + 1;
+      const birthday23 = new Date(nextYear, player.birthMonth, player.birthDay);
+      
+      // 将游戏日期设置为23岁生日
+      gameDate = new Date(birthday23);
+      
+      // 确保不是首月状态
+      player.isFirstMonth = false;
+      
+      // 重置考勤状态
+      hasPerfectAttendance = true;
+      absentDays = 0;
+      
+      // 调整一些属性，模拟一年的成长
+      player.money = Math.max(player.money, 15000); // 确保有一定积蓄
+      player.skill = Math.max(player.skill, 800); // 技能有所提升
+      player.income = Math.max(player.income, 10000); // 工资有所增长
+      
+      updateStatusBox();
+      
+      showGamePopup(
+        "⚡ 测试模式", 
+        `时间快进！现在是你的23岁生日！<br><br>你已经在北京工作一年了，技能和收入都有所提升。`, 
+        "测试功能已激活",
+        function() {
+          // 立即触发23岁生日事件
+          player.age++; // 变成23岁
+          handleBirthdayEvent();
+        }
+      );
+    }
+
     // 第一天强制上班函数
     function goToWork() {
       const gameScreen = document.getElementById("game-screen");
@@ -1039,7 +1085,22 @@
         
         showGamePopup(
           "🎂 生日快乐！", 
-          `今天是你的${player.age}岁生日！<br><br>📱 微信消息不断弹出...<br><br>"儿子生日快乐！妈妈给你发了2000块钱红包，记得收一下~"<br><br>"生日快乐啊，小子都23了，什么时候带个女朋友回家？隔壁老王家的孩子都订婚了..."<br><br>看着父母的关心和"催婚"，你心情复杂但也很温暖。`, 
+          `<div style="background: #f0f0f0; padding: 10px; border-radius: 8px; text-align: left; margin: 10px 0;">
+            <p style="color: #666; font-size: 12px; margin: 5px 0;">爸爸 刚刚</p>
+            <p style="margin: 5px 0;">儿子生日快乐！</p>
+          </div>
+          <div style="background: #f0f0f0; padding: 10px; border-radius: 8px; text-align: left; margin: 10px 0;">
+            <p style="color: #666; font-size: 12px; margin: 5px 0;">妈妈 刚刚</p>
+            <p style="margin: 5px 0;">生日快乐！妈妈给你发个红包～ 💰2000元</p>
+          </div>
+          <div style="background: #e8f5e8; padding: 10px; border-radius: 8px; text-align: left; margin: 10px 0;">
+            <p style="color: #666; font-size: 12px; margin: 5px 0;">妹妹 刚刚</p>
+            <div style="background: #4CAF50; color: white; padding: 8px; border-radius: 15px; display: inline-block; margin: 5px 0;">
+              <p style="margin: 0; font-size: 12px;">🎤 5"</p>
+            </div>
+            <p style="margin: 5px 0; font-style: italic; color: #666; font-size: 14px;">"哥哥生日快乐！"</p>
+          </div>
+          <br>看到家里人的消息，你心里暖暖的。听到妹妹稚嫩的语音，你欣慰地笑了。`, 
           "年龄+1，金钱+2000，心情+30"
         );
       } else {
@@ -1059,21 +1120,67 @@
       }
     }
 
+
+
+
+
+
+
+
+
     function settleSalary() {
-      const workDaysInMonth = 26;
-      let bonus = hasPerfectAttendance ? Math.floor(player.income * 0.25) : 0;
-      let dailySalary = Math.floor(player.income / workDaysInMonth);
-      let actualWorkDays = workDaysInMonth - absentDays;
-      actualWorkDays = Math.max(0, actualWorkDays);
-      let actualSalary = dailySalary * actualWorkDays;
-
-      player.money += actualSalary + bonus - player.rent;
-      updateStatusBox();
-
-      let message = `本月工作${actualWorkDays}天<br>实发工资：${actualSalary}元<br>全勤奖：${bonus}元<br>扣除房租：${player.rent}元`;
-      let effectsText = `金钱+${actualSalary + bonus - player.rent}`;
-      
-      showGamePopup("💰 月底结算", message, effectsText);
+      // 首月工资特殊处理
+      if (player.isFirstMonth) {
+        const workDaysInMonth = 26;
+        let actualWorkDays = workDaysInMonth - absentDays;
+        actualWorkDays = Math.max(0, actualWorkDays);
+        let dailySalary = Math.floor(player.income / workDaysInMonth);
+        let actualSalary = dailySalary * actualWorkDays;
+        
+        // 根据入职日期决定奖金类型
+        let bonus = 0;
+        let bonusType = "";
+        let managerMessage = "";
+        
+        if (hasPerfectAttendance && actualWorkDays >= workDaysInMonth) {
+          if (player.hireDate.getDate() > 10) {
+            // 10号之后入职：新人绩效奖
+            bonus = Math.floor(player.income * 0.15);
+            bonusType = "新人绩效奖";
+            managerMessage = `<br><br>💬 主管说："虽然你入职比较晚，按理说这个月没有全勤奖，但公司有鼓励新人的传统，给你特殊的新人奖励！"`;
+          } else {
+            // 10号及之前入职：普通全勤奖
+            bonus = Math.floor(player.income * 0.25);
+            bonusType = "全勤奖";
+            managerMessage = `<br><br>💬 主管说："你入职时间比较早，这个月表现很好，给你正常的全勤奖！"`;
+          }
+        }
+        
+        player.money += actualSalary + bonus - player.rent;
+        updateStatusBox();
+        
+        let message = `本月工作${actualWorkDays}天<br>实发工资：${actualSalary}元`;
+        if (bonus > 0) {
+          message += `<br>${bonusType}：${bonus}元${managerMessage}`;
+        }
+        message += `<br><br>扣除房租：${player.rent}元`;
+        
+        let effectsText = `金钱+${actualSalary + bonus - player.rent}`;
+        showGamePopup("💰 首月结算", message, effectsText);
+        player.isFirstMonth = false;
+      } else {
+        const workDaysInMonth = 26;
+        let bonus = hasPerfectAttendance ? Math.floor(player.income * 0.25) : 0;
+        let dailySalary = Math.floor(player.income / workDaysInMonth);
+        let actualWorkDays = workDaysInMonth - absentDays;
+        actualWorkDays = Math.max(0, actualWorkDays);
+        let actualSalary = dailySalary * actualWorkDays;
+        player.money += actualSalary + bonus - player.rent;
+        updateStatusBox();
+        let message = `本月工作${actualWorkDays}天<br>实发工资：${actualSalary}元<br>全勤奖：${bonus}元<br>扣除房租：${player.rent}元`;
+        let effectsText = `金钱+${actualSalary + bonus - player.rent}`;
+        showGamePopup("💰 月底结算", message, effectsText);
+      }
       hasPerfectAttendance = true;
       absentDays = 0;
     }
