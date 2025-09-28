@@ -315,6 +315,14 @@
   
   <div id="game-container">
     <h2 style="color: #0078d7; margin-bottom: 20px; font-size: 28px; text-shadow: 2px 2px 4px rgba(0,0,0,0.1);">🏙️ 北漂人生</h2>
+    
+    <!-- 用户登录/菜单按钮 -->
+    <div style="position: absolute; top: 10px; right: 10px;">
+      <button onclick="showLoginRegisterDialog()" style="background: #0078d7; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">
+        <span id="user-btn-text">登录/注册</span>
+      </button>
+    </div>
+    
     <div id="start-screen">
       <p style="font-size: 18px; color: #333; margin-bottom: 15px;">请输入你的姓名：</p>
       <input type="text" id="name-input" placeholder="在这里输入你的名字...">
@@ -344,6 +352,9 @@
     <div id="game-screen" style="display:none;"></div>
   </div>
 
+  <!-- 引入API功能 -->
+  <script src="js/api.js"></script>
+  
   <script>
     // 游戏数据
     // 公司数据库
@@ -768,6 +779,19 @@
         closeGamePopup();
       }
     });
+
+    // 更新用户按钮文本
+    function updateUserButton() {
+      const btnText = document.getElementById('user-btn-text');
+      if (AuthManager.isLoggedIn()) {
+        const user = AuthManager.getCurrentUser();
+        btnText.textContent = user.username;
+        document.querySelector('#user-btn-text').parentElement.onclick = showLoginRegisterDialog;
+      } else {
+        btnText.textContent = '登录/注册';
+        document.querySelector('#user-btn-text').parentElement.onclick = showLoginRegisterDialog;
+      }
+    }
 
     function startGame() {
       const nameInput = document.getElementById("name-input").value;
@@ -1212,6 +1236,13 @@
         <p>今天是 <b>${getDateString()}</b>。</p>
         <p>今天你想：</p>
         ${optionsHtml}
+        <hr style="margin: 15px 0;">
+        <div style="display: flex; gap: 5px; justify-content: center; flex-wrap: wrap;">
+          <button onclick="careerMenu()" style="font-size: 12px; padding: 5px 8px;">💼 职业</button>
+          <button onclick="housingMenu()" style="font-size: 12px; padding: 5px 8px;">🏠 住房</button>
+          <button onclick="openItemsDialog()" style="font-size: 12px; padding: 5px 8px;">🎒 背包</button>
+          ${AuthManager.isLoggedIn() ? '<button onclick="saveGameToServer()" style="font-size: 12px; padding: 5px 8px; background: #28a745;">💾 保存</button>' : ''}
+        </div>
       `;
     }
 
@@ -1871,6 +1902,15 @@
         housingMenu();
       });
     }
+
+    // 页面加载完成时的初始化
+    document.addEventListener('DOMContentLoaded', function() {
+      // 更新用户按钮显示
+      updateUserButton();
+      
+      // 定期更新用户按钮
+      setInterval(updateUserButton, 1000);
+    });
   </script>
 </body>
 </html>
