@@ -316,13 +316,6 @@
   <div id="game-container">
     <h2 style="color: #0078d7; margin-bottom: 20px; font-size: 28px; text-shadow: 2px 2px 4px rgba(0,0,0,0.1);">🏙️ 北漂人生</h2>
     
-    <!-- 用户登录/菜单按钮 -->
-    <div style="position: absolute; top: 10px; right: 10px;">
-      <button onclick="showLoginRegisterDialog()" style="background: #0078d7; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer;">
-        <span id="user-btn-text">登录/注册</span>
-      </button>
-    </div>
-    
     <div id="start-screen">
       <p style="font-size: 18px; color: #333; margin-bottom: 15px;">请输入你的姓名：</p>
       <input type="text" id="name-input" placeholder="在这里输入你的名字...">
@@ -352,9 +345,6 @@
     <div id="game-screen" style="display:none;"></div>
   </div>
 
-  <!-- 引入API功能 -->
-  <script src="js/api.js"></script>
-  
   <script>
     // 游戏数据
     // 公司数据库
@@ -410,6 +400,70 @@
       { id: 4, name: "编程书籍", price: 150, desc: "提升编程技能的好书", skillGain: 10, moodGain: 5 },
       { id: 5, name: "肥宅快乐水", price: 50, desc: "总之就是很快乐", moodGain: 20 },
       { id: 6, name: "蛋白粉", price: 120, desc: "健身人士必备", moodGain: 2, special: "gym_bonus" }
+    ];
+
+    // 相亲对象数据库
+    const blindDateCandidates = [
+      { 
+        id: 1, 
+        name: "小雨", 
+        age: 24, 
+        job: "小学老师", 
+        personality: "温柔体贴",
+        hobby: "读书、烘焙",
+        desc: "性格温和，喜欢安静的生活",
+        successRate: 60,
+        incomeRequirement: 12000,
+        skillRequirement: 800
+      },
+      { 
+        id: 2, 
+        name: "晓敏", 
+        age: 26, 
+        job: "护士", 
+        personality: "活泼开朗",
+        hobby: "健身、旅游",
+        desc: "阳光女孩，充满正能量",
+        successRate: 55,
+        incomeRequirement: 15000,
+        skillRequirement: 900
+      },
+      { 
+        id: 3, 
+        name: "雅琴", 
+        age: 25, 
+        job: "银行职员", 
+        personality: "理性务实",
+        hobby: "理财、看电影",
+        desc: "注重稳定，有一定物质要求",
+        successRate: 45,
+        incomeRequirement: 18000,
+        skillRequirement: 1000
+      },
+      { 
+        id: 4, 
+        name: "诗涵", 
+        age: 23, 
+        job: "设计师", 
+        personality: "文艺清新",
+        hobby: "绘画、摄影",
+        desc: "追求精神契合，颜值控",
+        successRate: 50,
+        incomeRequirement: 10000,
+        skillRequirement: 1200
+      },
+      { 
+        id: 5, 
+        name: "欣怡", 
+        age: 27, 
+        job: "会计师", 
+        personality: "成熟稳重",
+        hobby: "瑜伽、投资",
+        desc: "事业有成，希望找到同样优秀的人",
+        successRate: 40,
+        incomeRequirement: 20000,
+        skillRequirement: 1300
+      }
     ];
 
     // 日期处理函数
@@ -477,7 +531,17 @@
       monthlyJobAttempts: 0, // 本月跳槽尝试次数
       lastJobAttemptMonth: 8, // 上次跳槽尝试的月份
       isFirstMonth: true, // 是否为首月
-      hireDate: null // 入职日期
+      hireDate: null, // 入职日期
+      // 相亲系统相关
+      marriagePressureActivated: false, // 是否激活了催婚模式
+      lastBlindDate: null, // 上次相亲时间
+      monthlyBlindDateCount: 0, // 本月相亲次数（限制每月最多2次）
+      blindDateExperience: 0, // 相亲经验值（影响成功率）
+      relationshipStatus: "single", // 感情状态：single, dating, engaged, married
+      // 恋爱系统相关
+      girlfriend: null, // 女朋友信息
+      relationshipHappiness: 0, // 感情热度 (0-100)
+      lastDateActivity: null // 上次约会时间
     };
 
     let gameDate = new Date(2025, 8, 1);
@@ -548,22 +612,45 @@
       const monthNames = ["1月", "2月", "3月", "4月", "5月", "6月", "7月", "8月", "9月", "10月", "11月", "12月"];
       const birthday = `${monthNames[player.birthMonth]}${player.birthDay}日`;
       
+      // 感情状态显示
+      let relationshipText = "";
+      if (player.marriagePressureActivated) {
+        const statusMap = {
+          "single": "💔 单身",
+          "dating": "💕 恋爱中", 
+          "engaged": "💍 已订婚",
+          "married": "💒 已婚"
+        };
+        relationshipText = statusMap[player.relationshipStatus] || "💔 单身";
+      }
+
       const statusBox = document.getElementById("status-box");
       statusBox.innerHTML = `
-        <p>日期：${getDateString()}</p>
-        <p>姓名：${player.name} | 年龄：${player.age}岁</p>
-        <p>生日：${birthday}</p>
-        <p>公司：${player.company}</p>
-        <p>月薪：${player.income}元</p>
-        <p>住房：${player.house || "暂无"}</p>
-        <p>房租：${player.rent}元</p>
-        <p>体力：${player.energy}/${player.maxEnergy}</p>
-        <p>心情：${player.mood}</p>
-        <p>能力：${player.skill}</p>
-        <p>存款：${player.money}元</p>
-        ${player.house ? '<button onclick="careerMenu()" style="width:100%; margin-top:5px;">关于工作...</button>' : ''}
-        ${player.house ? '<button onclick="housingMenu()" style="width:100%; margin-top:5px;">关于住房...</button>' : ''}
-        ${player.name ? '<button onclick="jumpTo23Birthday()" style="width:100%; margin-top:5px; background:#ff6b6b; color:white;">🎂 测试：跳到23岁生日</button>' : ''}
+        <div style="border-bottom: 1px solid #eee; padding-bottom: 10px; margin-bottom: 10px;">
+          <h4 style="margin: 0 0 8px 0; color: #0078d7;">📊 个人属性</h4>
+          <p style="margin: 2px 0;">日期：${getDateString()}</p>
+          <p style="margin: 2px 0;">姓名：${player.name} | 年龄：${player.age}岁</p>
+          <p style="margin: 2px 0;">生日：${birthday}</p>
+          <p style="margin: 2px 0;">体力：${player.energy}/${player.maxEnergy}</p>
+          <p style="margin: 2px 0;">心情：${player.mood}</p>
+          <p style="margin: 2px 0;">能力：${player.skill}</p>
+          <p style="margin: 2px 0;">存款：${player.money}元</p>
+        </div>
+        <div>
+          <h4 style="margin: 0 0 8px 0; color: #0078d7;">🏢 生活状态</h4>
+          <p style="margin: 2px 0;">公司：${player.company}</p>
+          <p style="margin: 2px 0;">月薪：${player.income}元</p>
+          <p style="margin: 2px 0;">住房：${player.house || "暂无"}</p>
+          <p style="margin: 2px 0;">房租：${player.rent}元</p>
+          ${player.marriagePressureActivated ? `<p style="margin: 2px 0;">感情：${relationshipText}</p>` : ''}
+          <div style="margin-top: 10px; display: flex; flex-direction: column; gap: 3px;">
+            <button onclick="careerMenu()" style="width:100%; padding: 4px; font-size: 12px;">💼 职业管理</button>
+            <button onclick="housingMenu()" style="width:100%; padding: 4px; font-size: 12px;">🏠 住房管理</button>
+            <button onclick="openItemsDialog()" style="width:100%; padding: 4px; font-size: 12px;">🎒 道具背包</button>
+            ${player.marriagePressureActivated ? '<button onclick="relationshipManagement()" style="width:100%; padding: 4px; font-size: 12px; background: #ff69b4; color: white;">💖 感情管理</button>' : ''}
+            ${player.name ? '<button onclick="jumpTo23Birthday()" style="width:100%; padding: 4px; font-size: 12px; background:#ff6b6b; color:white;">🎂 测试：跳到23岁生日</button>' : ''}
+          </div>
+        </div>
       `;
       updateItemsButton();
     }
@@ -780,19 +867,6 @@
       }
     });
 
-    // 更新用户按钮文本
-    function updateUserButton() {
-      const btnText = document.getElementById('user-btn-text');
-      if (AuthManager.isLoggedIn()) {
-        const user = AuthManager.getCurrentUser();
-        btnText.textContent = user.username;
-        document.querySelector('#user-btn-text').parentElement.onclick = showLoginRegisterDialog;
-      } else {
-        btnText.textContent = '登录/注册';
-        document.querySelector('#user-btn-text').parentElement.onclick = showLoginRegisterDialog;
-      }
-    }
-
     function startGame() {
       const nameInput = document.getElementById("name-input").value;
       const birthMonth = parseInt(document.getElementById("birth-month").value);
@@ -1002,6 +1076,13 @@
 
     // 测试功能：快速跳转到23岁生日
     function jumpTo23Birthday() {
+      // 如果没有住房，分配一个默认住房
+      if (!player.house) {
+        player.house = "五环外普通单间";
+        player.rent = 3000;
+        player.money = Math.max(player.money - 6000, 15000); // 扣除押金房租，但保证有一定积蓄
+      }
+      
       // 设置年龄为22岁，即将到23岁
       player.age = 22;
       
@@ -1087,9 +1168,36 @@
 
     function nextDay() {
       gameDate.setDate(gameDate.getDate() + 1);
+      
+      // 维护感情热度
+      maintainRelationship();
+      
       checkBirthday();
       if (gameDate.getDate() === 1) {
         settleSalary();
+      }
+    }
+    
+    // 维护感情关系
+    function maintainRelationship() {
+      if (player.relationshipStatus === "dating" && player.relationshipHappiness !== undefined) {
+        // 感情热度每天自然衰减
+        player.relationshipHappiness = Math.max(0, player.relationshipHappiness - 1);
+        
+        // 如果感情热度过低，有概率分手
+        if (player.relationshipHappiness <= 20) {
+          if (Math.random() < 0.1) { // 10%概率分手
+            player.relationshipStatus = "single";
+            player.girlfriend = null;
+            player.relationshipHappiness = 0;
+            
+            showGamePopup(
+              "💔 感情破裂",
+              `由于长时间疏于维护感情，${player.girlfriend ? player.girlfriend.name : "她"}选择了分手。<br><br>感情需要用心经营...`,
+              "感情状态重置为单身"
+            );
+          }
+        }
       }
     }
 
@@ -1125,7 +1233,13 @@
             <p style="margin: 5px 0; font-style: italic; color: #666; font-size: 14px;">"哥哥生日快乐！"</p>
           </div>
           <br>看到家里人的消息，你心里暖暖的。听到妹妹稚嫩的语音，你欣慰地笑了。`, 
-          "年龄+1，金钱+2000，心情+30"
+          "年龄+1，金钱+2000，心情+30",
+          function() {
+            // 生日祝福后，家人开始催婚
+            setTimeout(() => {
+              show23BirthdayMarriagePressure();
+            }, 1000);
+          }
         );
       } else {
         // 普通生日
@@ -1144,15 +1258,370 @@
       }
     }
 
+    // 23岁生日催婚事件
+    function show23BirthdayMarriagePressure() {
+      showGamePopup(
+        "📱 家庭群聊", 
+        `<div style="background: #f0f0f0; padding: 10px; border-radius: 8px; text-align: left; margin: 10px 0;">
+          <p style="color: #666; font-size: 12px; margin: 5px 0;">妈妈 2分钟前</p>
+          <p style="margin: 5px 0;">儿子啊，你也23了，妈妈在想...</p>
+        </div>
+        <div style="background: #f0f0f0; padding: 10px; border-radius: 8px; text-align: left; margin: 10px 0;">
+          <p style="color: #666; font-size: 12px; margin: 5px 0;">妈妈 刚刚</p>
+          <p style="margin: 5px 0;">要不要考虑找个女朋友？隔壁张阿姨家女儿人很不错的～</p>
+        </div>
+        <div style="background: #f0f0f0; padding: 10px; border-radius: 8px; text-align: left; margin: 10px 0;">
+          <p style="color: #666; font-size: 12px; margin: 5px 0;">爸爸 刚刚</p>
+          <p style="margin: 5px 0;">你妈说得对，工作稳定了就该考虑个人问题了。</p>
+        </div>
+        <div style="background: #e8f5e8; padding: 10px; border-radius: 8px; text-align: left; margin: 10px 0;">
+          <p style="color: #666; font-size: 12px; margin: 5px 0;">妹妹 刚刚</p>
+          <p style="margin: 5px 0;">哈哈哈，哥要被催婚了～不过确实该找个嫂子了！</p>
+        </div>
+        <br>看到这些消息，你感到一丝压力。原来不知不觉中，已经到了被催婚的年龄...`, 
+        null,
+        function() {
+          // 激活催婚模式
+          player.marriagePressureActivated = true;
+          player.lastBlindDate = null;
+          showGamePopup(
+            "💭 内心独白", 
+            "从明天开始，你可以考虑去相亲了。虽然有点尴尬，但也许能遇到对的人...", 
+            "解锁相亲功能"
+          );
+        }
+      );
+    }
 
+    // 相亲菜单
+    function blindDateMenu() {
+      const gameScreen = document.getElementById("game-screen");
+      const today = gameDate;
+      const currentMonth = today.getMonth();
+      
+      // 检查本月相亲次数限制
+      if (player.monthlyBlindDateCount >= 2) {
+        gameScreen.innerHTML = `
+          <p>📱 你打开相亲app...</p>
+          <p style="color: #999;">本月相亲次数已用完，请下个月再试。</p>
+          <p style="font-size: 12px; color: #666;">（每月最多可以相亲2次）</p>
+          <hr>
+          <button onclick="nextStep()">返回</button>
+        `;
+        return;
+      }
 
+      // 随机选择3个相亲对象
+      let availableCandidates = [...blindDateCandidates];
+      let choices = [];
+      while (choices.length < 3 && availableCandidates.length > 0) {
+        let idx = Math.floor(Math.random() * availableCandidates.length);
+        choices.push(availableCandidates[idx]);
+        availableCandidates.splice(idx, 1);
+      }
 
+      gameScreen.innerHTML = `
+        <p>📱 相亲角</p>
+        <p>妈妈给你推荐了几个女孩，选一个去见见吧：</p>
+        ${choices.map(candidate => {
+          const successRate = calculateBlindDateSuccessRate(candidate);
+          return `
+          <div style="margin: 10px 0; padding: 12px; border: 1px solid #eee; border-radius: 8px; text-align: left;">
+            <h4 style="margin: 0 0 8px 0; color: #0078d7;">${candidate.name} (${candidate.age}岁)</h4>
+            <p style="margin: 4px 0; font-size: 14px;">职业：${candidate.job}</p>
+            <p style="margin: 4px 0; font-size: 14px;">性格：${candidate.personality}</p>
+            <p style="margin: 4px 0; font-size: 14px;">爱好：${candidate.hobby}</p>
+            <p style="margin: 4px 0; font-size: 12px; color: #666;">${candidate.desc}</p>
+            <p style="margin: 8px 0 4px 0; font-size: 12px; color: ${successRate >= 60 ? '#28a745' : successRate >= 40 ? '#ffc107' : '#dc3545'};">
+              成功率：${successRate}%
+            </p>
+            <button onclick="goBlindDate(${candidate.id})" style="margin-top: 5px; font-size: 12px;">约她见面</button>
+          </div>
+        `;
+        }).join('')}
+        <hr>
+        <button onclick="nextStep()">算了，不去了</button>
+      `;
+    }
 
+    // 计算相亲成功率
+    function calculateBlindDateSuccessRate(candidate) {
+      let baseRate = candidate.successRate;
+      
+      // 收入影响
+      if (player.income < candidate.incomeRequirement) {
+        baseRate -= 20;
+      } else if (player.income > candidate.incomeRequirement * 1.5) {
+        baseRate += 15;
+      }
+      
+      // 技能/能力影响
+      if (player.skill < candidate.skillRequirement) {
+        baseRate -= 15;
+      } else if (player.skill > candidate.skillRequirement * 1.2) {
+        baseRate += 10;
+      }
+      
+      // 相亲经验加成
+      baseRate += player.blindDateExperience * 2;
+      
+      // 心情影响
+      if (player.mood >= 80) {
+        baseRate += 10;
+      } else if (player.mood < 50) {
+        baseRate -= 15;
+      }
+      
+      return Math.max(10, Math.min(90, Math.floor(baseRate)));
+    }
 
+    // 执行相亲
+    function goBlindDate(candidateId) {
+      const candidate = blindDateCandidates.find(c => c.id === candidateId);
+      if (!candidate) return;
+      
+      // 消耗一次相亲机会
+      player.monthlyBlindDateCount++;
+      player.lastBlindDate = new Date(gameDate);
+      
+      // 消耗金钱和体力
+      resetChanges();
+      applyChange('money', -300); // 相亲费用
+      applyChange('energy', -15);
+      
+      const successRate = calculateBlindDateSuccessRate(candidate);
+      const success = Math.random() * 100 < successRate;
+      
+      if (success) {
+        // 相亲成功，建立恋爱关系
+        player.blindDateExperience += 1;
+        applyChange('mood', 25);
+        player.relationshipStatus = "dating";
+        player.girlfriend = {
+          name: candidate.name,
+          age: candidate.age,
+          job: candidate.job,
+          personality: candidate.personality,
+          hobby: candidate.hobby
+        };
+        player.relationshipHappiness = 80; // 初始感情热度
+        player.lastDateActivity = null;
+        
+        let successMessages = [
+          `和${candidate.name}聊得很投机，你们约定下次再见面。`,
+          `${candidate.name}对你印象不错，给了你微信号。`,
+          `虽然有些紧张，但和${candidate.name}的交流很愉快。`
+        ];
+        
+        endDay(
+          `🌹 相亲成功！<br><br>${successMessages[Math.floor(Math.random() * successMessages.length)]}<br><br>也许这就是缘分的开始...`,
+          changes
+        );
+      } else {
+        // 相亲失败
+        player.blindDateExperience += 0.5; // 失败也有经验
+        applyChange('mood', -20);
+        
+        let failMessages = [
+          `和${candidate.name}没有太多共同话题，气氛有些尴尬。`,
+          `${candidate.name}似乎对你不太感兴趣，匆匆结束了见面。`,
+          `虽然努力表现，但感觉和${candidate.name}不太合适。`
+        ];
+        
+        endDay(
+          `😅 相亲失败<br><br>${failMessages[Math.floor(Math.random() * failMessages.length)]}<br><br>不要气馁，缘分还在后面等着你。`,
+          changes
+        );
+      }
+    }
 
+    // 约会活动
+    function dateActivity() {
+      if (player.relationshipStatus !== "dating") return;
+      
+      const gameScreen = document.getElementById("game-screen");
+      const activities = [
+        { name: "看电影", cost: 200, energy: -10, happiness: 15, mood: 20, desc: "在电影院享受两人世界" },
+        { name: "逛商场", cost: 500, energy: -15, happiness: 20, mood: 15, desc: "一起购物，为她挑选心仪的物品" },
+        { name: "公园散步", cost: 50, energy: -5, happiness: 10, mood: 25, desc: "在公园里漫步聊天，享受宁静时光" },
+        { name: "高档餐厅", cost: 800, energy: -5, happiness: 25, mood: 30, desc: "在浪漫的环境中共享美食" },
+        { name: "游乐园", cost: 400, energy: -20, happiness: 30, mood: 35, desc: "一起体验刺激有趣的游戏" }
+      ];
+      
+      gameScreen.innerHTML = `
+        <p>💕 约会活动</p>
+        <p>和${player.girlfriend.name}约会，选择一个活动：</p>
+        ${activities.map(activity => `
+          <div style="margin: 10px 0; padding: 10px; border: 1px solid #eee; border-radius: 8px; text-align: left;">
+            <h4 style="margin: 0 0 5px 0; color: #ff1493;">${activity.name}</h4>
+            <p style="margin: 2px 0; font-size: 14px; color: #666;">${activity.desc}</p>
+            <p style="margin: 5px 0; font-size: 12px;">费用: ${activity.cost}元 | 体力: ${activity.energy} | 感情: +${activity.happiness}</p>
+            <button onclick="executeDate('${activity.name}', ${activity.cost}, ${activity.energy}, ${activity.happiness}, ${activity.mood})" 
+                    style="font-size: 12px; padding: 4px 8px;"${player.money < activity.cost ? ' disabled' : ''}>
+              ${player.money < activity.cost ? '💸 资金不足' : '💕 选择这个'}
+            </button>
+          </div>
+        `).join('')}
+        <hr>
+        <button onclick="relationshipManagement()">返回</button>
+      `;
+    }
+    
+    // 执行约会
+    function executeDate(activityName, cost, energyCost, happinessGain, moodGain) {
+      resetChanges();
+      applyChange('money', -cost);
+      applyChange('energy', energyCost);
+      applyChange('mood', moodGain);
+      
+      player.relationshipHappiness = Math.min(100, player.relationshipHappiness + happinessGain);
+      player.lastDateActivity = new Date(gameDate);
+      
+      let messages = {
+        "看电影": `和${player.girlfriend.name}一起看了场电影，她靠在你肩膀上，你感到很幸福。`,
+        "逛商场": `陪${player.girlfriend.name}逛街，虽然累但看到她开心的样子，一切都值得。`,
+        "公园散步": `和${player.girlfriend.name}在公园里慢慢走着，聊着彼此的梦想和未来。`,
+        "高档餐厅": `在烛光晚餐中，${player.girlfriend.name}说这是她吃过最浪漫的一顿饭。`,
+        "游乐园": `和${player.girlfriend.name}一起坐过山车，她吓得紧紧抓住你的手，两人都笑得很开心。`
+      };
+      
+      endDay(
+        `💕 约会：${activityName}<br><br>${messages[activityName]}<br><br>感情热度提升了！`,
+        changes
+      );
+    }
+    
+    // 送礼物
+    function giftActivity() {
+      const gameScreen = document.getElementById("game-screen");
+      const gifts = [
+        { name: "鲜花", cost: 150, happiness: 10, desc: "一束美丽的玫瑰花" },
+        { name: "巧克力", cost: 80, happiness: 8, desc: "精美包装的进口巧克力" },
+        { name: "项链", cost: 1200, happiness: 30, desc: "精致的银项链" },
+        { name: "包包", cost: 2000, happiness: 40, desc: "她一直想要的品牌包" },
+        { name: "手机", cost: 3000, happiness: 50, desc: "最新款智能手机" }
+      ];
+      
+      gameScreen.innerHTML = `
+        <p>🎁 送礼物</p>
+        <p>选择一份礼物送给${player.girlfriend.name}：</p>
+        ${gifts.map(gift => `
+          <div style="margin: 10px 0; padding: 10px; border: 1px solid #eee; border-radius: 8px; text-align: left;">
+            <h4 style="margin: 0 0 5px 0; color: #ff69b4;">${gift.name}</h4>
+            <p style="margin: 2px 0; font-size: 14px; color: #666;">${gift.desc}</p>
+            <p style="margin: 5px 0; font-size: 12px;">价格: ${gift.cost}元 | 感情: +${gift.happiness}</p>
+            <button onclick="giveGift('${gift.name}', ${gift.cost}, ${gift.happiness})" 
+                    style="font-size: 12px; padding: 4px 8px;"${player.money < gift.cost ? ' disabled' : ''}>
+              ${player.money < gift.cost ? '💸 买不起' : '🎁 购买'}
+            </button>
+          </div>
+        `).join('')}
+        <hr>
+        <button onclick="relationshipManagement()">返回</button>
+      `;
+    }
+    
+    // 执行送礼
+    function giveGift(giftName, cost, happinessGain) {
+      resetChanges();
+      applyChange('money', -cost);
+      applyChange('mood', 15);
+      
+      player.relationshipHappiness = Math.min(100, player.relationshipHappiness + happinessGain);
+      
+      let reactions = {
+        "鲜花": `${player.girlfriend.name}收到花后很开心，说你很贴心。`,
+        "巧克力": `${player.girlfriend.name}尝了一口巧克力，甜甜地笑了。`,
+        "项链": `${player.girlfriend.name}立刻戴上了项链，说很喜欢。`,
+        "包包": `${player.girlfriend.name}激动地抱住了你，说这正是她想要的。`,
+        "手机": `${player.girlfriend.name}惊喜得说不出话，眼中闪着泪花。`
+      };
+      
+      endDay(
+        `🎁 礼物：${giftName}<br><br>${reactions[giftName]}<br><br>她对你的感情更深了！`,
+        changes
+      );
+    }
+    
+    // 电话聊天
+    function callGirlfriend() {
+      resetChanges();
+      applyChange('energy', -5);
+      applyChange('mood', 10);
+      
+      player.relationshipHappiness = Math.min(100, player.relationshipHappiness + 5);
+      
+      let chatTopics = [
+        `和${player.girlfriend.name}聊了很久，她跟你分享了工作中的趣事。`,
+        `${player.girlfriend.name}说很想你，你们约定周末见面。`,
+        `你们聊到深夜，${player.girlfriend.name}说和你聊天很开心。`,
+        `${player.girlfriend.name}向你抱怨今天的烦心事，你耐心地安慰她。`
+      ];
+      
+      endDay(
+        `📞 电话聊天<br><br>${chatTopics[Math.floor(Math.random() * chatTopics.length)]}<br><br>感情在日常交流中慢慢加深。`,
+        changes
+      );
+    }
 
+    // 感情管理中心
+    function relationshipManagement() {
+      const gameScreen = document.getElementById("game-screen");
+      let statusText = "";
+      let availableActions = "";
+      
+      switch(player.relationshipStatus) {
+        case "single":
+          statusText = "单身 - 还在寻找那个对的人";
+          if (gameDate.getDay() === 0 && player.monthlyBlindDateCount < 2) {
+            availableActions = '<button onclick="blindDateMenu()" style="background: #ff69b4; color: white; margin: 5px;">💕 去相亲</button>';
+          }
+          break;
+        case "dating":
+          statusText = "恋爱中 - 希望这段感情能开花结果";
+          availableActions = `
+            <button onclick="dateActivity()" style="background: #ff1493; color: white; margin: 5px;">💕 约会</button>
+            <button onclick="giftActivity()" style="background: #ff69b4; color: white; margin: 5px;">🎁 送礼物</button>
+            <button onclick="callGirlfriend()" style="background: #da70d6; color: white; margin: 5px;">📞 聊天</button>
+          `;
+          break;
+        case "engaged":
+          statusText = "已订婚 - 准备步入婚姻殿堂";
+          availableActions = '<button onclick="weddingPrep()" style="background: #ff1493; color: white; margin: 5px;">💒 筹备婚礼</button>';
+          break;
+        case "married":
+          statusText = "已婚 - 人生进入新的阶段";
+          availableActions = '<button onclick="familyLife()" style="background: #ff69b4; color: white; margin: 5px;">👨‍👩‍👧‍👦 家庭生活</button>';
+          break;
+      }
+      
+      gameScreen.innerHTML = `
+        <p>💖 感情管理中心</p>
+        <div style="text-align: left; margin: 15px 0; padding: 10px; background: #f9f9f9; border-radius: 8px;">
+          <p><b>当前状态：</b>${statusText}</p>
+          <p><b>相亲经验：</b>${player.blindDateExperience} 点</p>
+          <p><b>本月相亲次数：</b>${player.monthlyBlindDateCount}/2</p>
+          ${player.lastBlindDate ? `<p><b>上次相亲：</b>${formatDate(player.lastBlindDate)}</p>` : ''}
+          ${player.relationshipStatus === "dating" && player.girlfriend ? `<p><b>女朋友：</b>${player.girlfriend.name} (${player.girlfriend.job})</p>` : ''}
+          ${player.relationshipStatus === "dating" && player.relationshipHappiness !== undefined ? `<p><b>感情热度：</b>${player.relationshipHappiness}/100</p>` : ''}
+        </div>
+        <div style="text-align: center;">
+          ${availableActions}
+        </div>
+        <hr>
+        <button onclick="nextStep()">返回</button>
+      `;
+    }
+    
+    // 格式化日期显示
+    function formatDate(date) {
+      return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+    }
 
     function settleSalary() {
+      // 重置本月相亲次数
+      player.monthlyBlindDateCount = 0;
+      
       // 首月工资特殊处理
       if (player.isFirstMonth) {
         const workDaysInMonth = 26;
@@ -1227,6 +1696,12 @@
       let optionsHtml = '';
       if (day === 0) {
         optionsHtml = '<button onclick="restMenu()">在家休息</button>';
+        // 周末可以相亲或约会
+        if (player.marriagePressureActivated && player.relationshipStatus === "single") {
+          optionsHtml += '<button onclick="blindDateMenu()" style="background: #ff69b4; color: white;">💕 相亲</button>';
+        } else if (player.relationshipStatus === "dating") {
+          optionsHtml += '<button onclick="dateActivity()" style="background: #ff1493; color: white;">💕 约会</button>';
+        }
       } else {
         optionsHtml = '<button onclick="chooseWork()">去公司上班</button>' +
                       '<button onclick="restMenu()">在家休息</button>';
@@ -1236,13 +1711,6 @@
         <p>今天是 <b>${getDateString()}</b>。</p>
         <p>今天你想：</p>
         ${optionsHtml}
-        <hr style="margin: 15px 0;">
-        <div style="display: flex; gap: 5px; justify-content: center; flex-wrap: wrap;">
-          <button onclick="careerMenu()" style="font-size: 12px; padding: 5px 8px;">💼 职业</button>
-          <button onclick="housingMenu()" style="font-size: 12px; padding: 5px 8px;">🏠 住房</button>
-          <button onclick="openItemsDialog()" style="font-size: 12px; padding: 5px 8px;">🎒 背包</button>
-          ${AuthManager.isLoggedIn() ? '<button onclick="saveGameToServer()" style="font-size: 12px; padding: 5px 8px; background: #28a745;">💾 保存</button>' : ''}
-        </div>
       `;
     }
 
@@ -1905,11 +2373,8 @@
 
     // 页面加载完成时的初始化
     document.addEventListener('DOMContentLoaded', function() {
-      // 更新用户按钮显示
-      updateUserButton();
-      
-      // 定期更新用户按钮
-      setInterval(updateUserButton, 1000);
+      // 初始化游戏
+      console.log('北漂人生游戏已加载');
     });
   </script>
 </body>
