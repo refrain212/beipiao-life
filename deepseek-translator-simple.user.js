@@ -20,7 +20,7 @@
     // ========================================
     const CONFIG = {
         // 👇 请在下面的单引号内填入您的 DeepSeek API Key
-        API_KEY: 'sk-fdc6b68f14d14138999874e046f031ec',  // 格式: 'sk-xxxxxxxxxxxxxxxxxxxxxxxxxx'
+        API_KEY: '',  // 格式: 'sk-xxxxxxxxxxxxxxxxxxxxxxxxxx'
         
         // 其他配置
         TARGET_LANGUAGE: 'zh',  // 目标语言: zh=中文, en=英文, ja=日文, ko=韩文
